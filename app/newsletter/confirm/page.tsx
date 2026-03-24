@@ -112,16 +112,16 @@ export default function ConfirmPage({
       const supabase = createClient()
       const { data: subscriber, error } = await supabase
         .from("newsletter_subscribers")
-        .select("id, is_active, email")
+        .select("id, status, email")
         .eq("token", token)
         .single()
 
       if (error || !subscriber) { setStatus("invalid"); return }
-      if (subscriber.is_active) { setStatus("already"); return }
+      if (subscriber.status === "active") { setStatus("already"); return }
 
       const { error: updateError } = await supabase
         .from("newsletter_subscribers")
-        .update({ is_active: true, unsubscribed_at: null })
+        .update({ status: "active", unsubscribed_at: null })
         .eq("id", subscriber.id)
 
       if (updateError) { setErrorMessage(updateError.message); setStatus("error"); return }

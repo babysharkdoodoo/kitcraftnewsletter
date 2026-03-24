@@ -20,7 +20,7 @@ export async function sendNewsletter(formData: FormData) {
   const { data: subscribers, error } = await supabase
     .from("newsletter_subscribers")
     .select("email, first_name, token")
-    .eq("is_active", true)
+    .eq("status", "active")
 
   if (error || !subscribers || subscribers.length === 0) {
     return { success: false, message: "No active subscribers found" }

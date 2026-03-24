@@ -328,12 +328,12 @@ export async function subscribeToNewsletter(formData: FormData): Promise<Newslet
 
   const { data: existingSubscriber } = await supabase
     .from("newsletter_subscribers")
-    .select("id, is_active")
+    .select("id, status")
     .eq("email", email.toLowerCase().trim())
     .single()
 
   if (existingSubscriber) {
-    if (existingSubscriber.is_active) {
+    if (existingSubscriber.status === "active") {
       const { error: updateError } = await supabase
         .from("newsletter_subscribers")
         .update({ first_name: firstName.trim(), preferences })
@@ -348,7 +348,7 @@ export async function subscribeToNewsletter(formData: FormData): Promise<Newslet
     } else {
       const { error: reactivateError } = await supabase
         .from("newsletter_subscribers")
-        .update({ first_name: firstName.trim(), preferences, is_active: false, token })
+        .update({ first_name: firstName.trim(), preferences, status: "pending", token })
         .eq("id", existingSubscriber.id)
 
       if (reactivateError) {
@@ -375,7 +375,7 @@ export async function subscribeToNewsletter(formData: FormData): Promise<Newslet
     first_name: firstName.trim(),
     email: email.toLowerCase().trim(),
     preferences,
-    is_active: false,
+    status: "pending",
     source: "website",
     token,
   })

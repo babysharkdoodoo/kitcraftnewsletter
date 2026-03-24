@@ -42,13 +42,13 @@ export default function UnsubscribePage({
     const supabase = createClient()
     const { data, error } = await supabase
       .from("newsletter_subscribers")
-      .select("id, is_active, email, first_name")
+      .select("id, status, email, first_name")
       .eq("token", token)
       .single()
 
     if (error || !data) {
       setError("invalid")
-    } else if (!data.is_active) {
+    } else if (data.status !== "active") {
       setError("already")
     } else {
       setSubscriber(data)
@@ -65,7 +65,7 @@ export default function UnsubscribePage({
     const { error } = await supabase
       .from("newsletter_subscribers")
       .update({
-        is_active: false,
+        status: "unsubscribed",
         unsubscribed_at: new Date().toISOString(),
       })
       .eq("id", subscriber.id)

@@ -13,7 +13,7 @@ export async function getAdminStats() {
   const { count: activeSubscribers } = await supabase
     .from("newsletter_subscribers")
     .select("*", { count: "exact", head: true })
-    .eq("is_active", true)
+    .eq("status", "active")
 
   // Weekly growth
   const oneWeekAgo = new Date()
@@ -46,7 +46,7 @@ export async function getAdminStats() {
   const { data: subscribers } = await supabase
     .from("newsletter_subscribers")
     .select("preferences")
-    .eq("is_active", true)
+    .eq("status", "active")
 
   const preferenceCounts: Record<string, number> = {}
   subscribers?.forEach((sub) => {

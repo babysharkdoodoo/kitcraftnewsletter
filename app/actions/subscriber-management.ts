@@ -25,7 +25,7 @@ export async function exportSubscribers() {
   const rows = subscribers.map((sub) => [
     sub.email,
     sub.first_name,
-    sub.is_active ? "Active" : "Unsubscribed",
+    sub.status === "active" ? "Active" : sub.status === "pending" ? "Pending" : "Unsubscribed",
     sub.preferences?.join("; ") || "",
     new Date(sub.subscribed_at).toISOString(),
     sub.source || "",

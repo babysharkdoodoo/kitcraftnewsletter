@@ -105,12 +105,14 @@ export default function SubscribersPage() {
                         <td className="py-3 px-4">
                           <span
                             className={`inline-block px-2 py-1 rounded text-xs ${
-                              sub.is_active
+                              sub.status === "active"
                                 ? "bg-green-100 text-green-800"
+                                : sub.status === "pending"
+                                ? "bg-yellow-100 text-yellow-800"
                                 : "bg-gray-100 text-gray-800"
                             }`}
                           >
-                            {sub.is_active ? "Active" : "Unsubscribed"}
+                            {sub.status === "active" ? "Active" : sub.status === "pending" ? "Pending" : "Unsubscribed"}
                           </span>
                         </td>
                         <td className="py-3 px-4">
