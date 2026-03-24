@@ -123,34 +123,44 @@ function ConfirmPageContent() {
 
   useEffect(() => {
     const token = searchParams.get("token")
-    console.log("[Confirm] Token:", token)
+    console.log("[Confirm] Token from URL:", token)
+    console.log("[Confirm] Full search params:", searchParams.toString())
     
     if (!token) { 
+      console.error("[Confirm] No token found in URL")
       setStatus("invalid")
       return 
     }
 
     const confirmSubscription = async () => {
+      console.log("[Confirm] Starting confirmation for token:", token)
       const supabase = createClient()
+      
+      console.log("[Confirm] Querying database...")
       const { data: subscriber, error } = await supabase
         .from("newsletter_subscribers")
-        .select("id, status, email")
+        .select("id, status, email, token")
         .eq("token", token)
         .single()
 
-      console.log("[Confirm] Subscriber query result:", { subscriber, error })
+      console.log("[Confirm] Database response:", { subscriber, error })
+      console.log("[Confirm] Error details:", error ? JSON.stringify(error, null, 2) : "none")
+      
       if (error || !subscriber) { 
-        console.error("[Confirm] Error or no subscriber:", error)
+        console.error("[Confirm] Error or no subscriber found:", error)
         setStatus("invalid")
         return 
       }
+      
+      console.log("[Confirm] Subscriber found:", subscriber)
+      
       if (subscriber.status === "active") { 
-        console.log("[Confirm] Already active")
+        console.log("[Confirm] Subscriber already active")
         setStatus("already")
         return 
       }
 
-      console.log("[Confirm] Updating subscriber to active")
+      console.log("[Confirm] Updating subscriber to active...")
       const { error: updateError } = await supabase
         .from("newsletter_subscribers")
         .update({ status: "active", unsubscribed_at: null })
@@ -158,11 +168,12 @@ function ConfirmPageContent() {
 
       if (updateError) { 
         console.error("[Confirm] Update error:", updateError)
+        console.error("[Confirm] Update error details:", JSON.stringify(updateError, null, 2))
         setErrorMessage(updateError.message)
         setStatus("error")
         return 
       }
-      console.log("[Confirm] Success!")
+      console.log("[Confirm] Success! Subscriber activated")
       setStatus("success")
     }
 
