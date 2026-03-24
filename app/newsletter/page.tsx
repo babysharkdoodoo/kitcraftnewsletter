@@ -3,7 +3,7 @@
 // Force dynamic rendering for admin pages
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, Suspense } from "react"
 import Link from "next/link"
 import {
   ArrowRight, BookOpen, Heart, Sparkles, Star, Package,
@@ -691,7 +691,9 @@ function SignupSection() {
             <p className="text-[9px] font-black uppercase tracking-[0.28em] text-foreground/45 mb-2">Free · No account needed</p>
             <h3 className="font-serif text-[1.6rem] font-bold text-foreground leading-tight">Subscribe to KitCraft</h3>
           </div>
-          <NewsletterSignup className="max-w-none w-full" />
+          <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+            <NewsletterSignup className="max-w-none w-full" />
+          </Suspense>
         </div>
       </div>
     </section>

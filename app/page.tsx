@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, Suspense } from "react"
 import Link from "next/link"
 import {
   ArrowRight, BookOpen, Heart, Sparkles, Star, Package,
@@ -812,7 +812,9 @@ function SignupSection() {
               <p className="font-mono text-[11px]">Melbourne, FL · Brevard County</p>
             </div>
           </div>
-          <NewsletterSignup className="max-w-none w-full" />
+          <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+            <NewsletterSignup className="max-w-none w-full" />
+          </Suspense>
         </div>
       </div>
     </section>
