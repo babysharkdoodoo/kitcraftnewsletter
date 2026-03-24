@@ -382,7 +382,8 @@ export async function subscribeToNewsletter(formData: FormData): Promise<Newslet
 
   if (insertError) {
     console.error("[newsletter] Error inserting subscriber:", insertError)
-    return { success: false, message: "Something went wrong. Please try again.", error: "DATABASE_ERROR" }
+    console.error("[newsletter] Insert error details:", JSON.stringify(insertError, null, 2))
+    return { success: false, message: `Database error: ${insertError.message}`, error: "DATABASE_ERROR" }
   }
 
   console.log("[newsletter] Attempting to send email to:", email.toLowerCase().trim())

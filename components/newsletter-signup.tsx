@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { ArrowRight, Check, X } from "lucide-react"
 import { subscribeToNewsletter } from "@/app/actions/newsletter"
 import { cn } from "@/lib/utils"
@@ -26,6 +27,7 @@ const PREFS: Pref[] = [
 ]
 
 export function NewsletterSignup({ className }: { className?: string }) {
+  const searchParams = useSearchParams()
   const [firstName, setFirstName] = useState("")
   const [email, setEmail] = useState("")
   const [honeypot, setHoneypot] = useState("")
@@ -34,6 +36,14 @@ export function NewsletterSignup({ className }: { className?: string }) {
   const [isSuccess, setIsSuccess] = useState(false)
   const [errors, setErrors] = useState<{ name?: string; email?: string; general?: string }>({})
   const [focused, setFocused] = useState<"name" | "email" | null>(null)
+
+  // Pre-fill email from URL parameter
+  useEffect(() => {
+    const emailParam = searchParams.get("email")
+    if (emailParam) {
+      setEmail(emailParam)
+    }
+  }, [searchParams])
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -76,7 +86,9 @@ export function NewsletterSignup({ className }: { className?: string }) {
       fd.set("preferences", JSON.stringify(Array.from(selected)))
       fd.set("website", honeypot)
 
+      console.log("[Newsletter] Submitting subscription...")
       const result = await subscribeToNewsletter(fd)
+      console.log("[Newsletter] Result:", result)
 
       if (result.success) {
         setIsSuccess(true)
@@ -88,7 +100,8 @@ export function NewsletterSignup({ className }: { className?: string }) {
       } else {
         setErrors({ general: result.message })
       }
-    } catch {
+    } catch (err) {
+      console.error("[Newsletter] Caught error:", err)
       setErrors({ general: "Something went wrong. Please try again." })
     } finally {
       setIsSubmitting(false)
