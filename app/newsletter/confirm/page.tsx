@@ -98,18 +98,22 @@ const ACCENT_HEX: Record<string, string> = {
 export default function ConfirmPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string }>
+  searchParams: { token?: string }
 }) {
   const [status, setStatus] = useState<Status>("loading")
   const [errorMessage, setErrorMessage] = useState("")
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    searchParams.then(async (params) => {
-      const token = params.token
-      console.log("[Confirm] Token:", token)
-      if (!token) { setStatus("invalid"); return }
+    const token = searchParams.token
+    console.log("[Confirm] Token:", token)
+    
+    if (!token) { 
+      setStatus("invalid")
+      return 
+    }
 
+    const confirmSubscription = async () => {
       const supabase = createClient()
       const { data: subscriber, error } = await supabase
         .from("newsletter_subscribers")
@@ -120,12 +124,12 @@ export default function ConfirmPage({
       console.log("[Confirm] Subscriber query result:", { subscriber, error })
       if (error || !subscriber) { 
         console.error("[Confirm] Error or no subscriber:", error)
-        setStatus("invalid"); 
+        setStatus("invalid")
         return 
       }
       if (subscriber.status === "active") { 
         console.log("[Confirm] Already active")
-        setStatus("already"); 
+        setStatus("already")
         return 
       }
 
@@ -137,14 +141,16 @@ export default function ConfirmPage({
 
       if (updateError) { 
         console.error("[Confirm] Update error:", updateError)
-        setErrorMessage(updateError.message); 
-        setStatus("error"); 
+        setErrorMessage(updateError.message)
+        setStatus("error")
         return 
       }
       console.log("[Confirm] Success!")
       setStatus("success")
-    })
-  }, [])
+    }
+
+    confirmSubscription()
+  }, [searchParams])
 
   useEffect(() => {
     if (status !== "loading") {
