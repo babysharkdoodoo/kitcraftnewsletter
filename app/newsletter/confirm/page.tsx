@@ -1,7 +1,8 @@
 "use client"
 
 import { createClient } from "@/lib/supabase/client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 
 type Status = "loading" | "invalid" | "already" | "error" | "success"
 
@@ -95,17 +96,33 @@ const ACCENT_HEX: Record<string, string> = {
   rose:    "#fb7185",
 }
 
-export default function ConfirmPage({
-  searchParams,
-}: {
-  searchParams: { token?: string }
-}) {
+export default function ConfirmPage() {
+  return (
+    <Suspense fallback={
+      <div className="font-mono min-h-screen flex items-center justify-center" style={{ backgroundColor: "#111118" }}>
+        <div className="py-20 flex flex-col items-center gap-4">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" style={{ color: "rgba(255,255,255,0.20)", animation: "spinSlow 3s linear infinite" }}>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" strokeDasharray="40" strokeDashoffset="15" />
+          </svg>
+          <span className="font-mono text-[9px] uppercase tracking-[0.32em]" style={{ color: "rgba(255,255,255,0.20)" }}>
+            Loading
+          </span>
+        </div>
+      </div>
+    }>
+      <ConfirmPageContent />
+    </Suspense>
+  )
+}
+
+function ConfirmPageContent() {
+  const searchParams = useSearchParams()
   const [status, setStatus] = useState<Status>("loading")
   const [errorMessage, setErrorMessage] = useState("")
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const token = searchParams.token
+    const token = searchParams.get("token")
     console.log("[Confirm] Token:", token)
     
     if (!token) { 
