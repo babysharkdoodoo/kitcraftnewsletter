@@ -1,5 +1,8 @@
 "use client"
 
+// Force dynamic rendering for admin pages
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import {
