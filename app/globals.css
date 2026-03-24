@@ -1,0 +1,1789 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   KITCRAFT COLLECTIVE — GLOBAL STYLESHEET
+   ─────────────────────────────────────────────────────────────────────────
+   Architecture:
+     1.  Imports
+     2.  CSS Custom Properties — light mode
+     3.  CSS Custom Properties — dark mode
+     4.  @theme inline (Tailwind v4 token bridge)
+     5.  @layer base — reset, typography, selection, scrollbar, focus
+     6.  @layer components — reusable class definitions
+     7.  @keyframes — complete animation library
+     8.  Utility animation classes
+     9.  Reduced-motion overrides
+     10. Print styles
+
+   Every design decision is commented. Nothing arbitrary.
+═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   1. IMPORTS
+   ─────────────────────────────────────────────────────────────────────────
+   tw-animate-css provides a set of pre-built entrance/exit animations
+   compatible with Tailwind's animation system. Imported before our own
+   declarations so our keyframes take precedence on any name conflicts.
+───────────────────────────────────────────────────────────────────────── */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   2. CSS CUSTOM PROPERTIES — LIGHT MODE
+   ─────────────────────────────────────────────────────────────────────────
+   Color system uses oklch() for perceptually uniform lightness. This means
+   a 10% lightness step always looks like the same visual jump, regardless
+   of hue — unlike hex or hsl which vary wildly. Primary is a mid-weight
+   blue-violet (L=0.55, C=0.22, H=255). Accent is a teal (L=0.72, C=0.18,
+   H=195) — the two together create the gradient used across the site.
+
+   The gradient from-primary → to-accent reads as "indigo to teal" which
+   is distinctive without being a cliché blue-to-purple corporate gradient.
+───────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Neutral surface scale — white base */
+  --background:            oklch(1 0 0);
+  --foreground:            oklch(0.185 0.02 250);
+
+  /* Card matches background — we differentiate with shadow and border */
+  --card:                  oklch(1 0 0);
+  --card-foreground:       oklch(0.185 0.02 250);
+
+  /* Popover — same as card intentionally */
+  --popover:               oklch(1 0 0);
+  --popover-foreground:    oklch(0.185 0.02 250);
+
+  /* Primary — blue-violet. Used for CTAs, links, accents, the hero bg */
+  --primary:               oklch(0.55 0.22 255);
+  --primary-foreground:    oklch(0.99 0 0);
+
+  /* Secondary — near-white. Used for secondary buttons, muted surfaces */
+  --secondary:             oklch(0.97 0 0);
+  --secondary-foreground:  oklch(0.205 0 0);
+
+  /* Muted — very light gray. Input backgrounds, subtle zones */
+  --muted:                 oklch(0.97 0 0);
+  --muted-foreground:      oklch(0.556 0 0);
+
+  /* Accent — teal. Appears in gradients as the "to" color */
+  --accent:                oklch(0.72 0.18 195);
+  --accent-foreground:     oklch(0.99 0 0);
+
+  /* Destructive — warm red */
+  --destructive:           oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+
+  /* Border — light gray. Just enough to separate zones without weight */
+  --border:                oklch(0.922 0 0);
+  --input:                 oklch(0.922 0 0);
+  --ring:                  oklch(0.708 0 0);
+
+  /* Data viz — warm palette intentionally different from UI colors */
+  --chart-1:               oklch(0.646 0.222 41.116);
+  --chart-2:               oklch(0.6   0.118 184.704);
+  --chart-3:               oklch(0.398 0.07  227.392);
+  --chart-4:               oklch(0.828 0.189 84.429);
+  --chart-5:               oklch(0.769 0.188 70.08);
+
+  /* Radius — 0.625rem base. Cards use 1.5rem (rounded-3xl via Tailwind) */
+  --radius:                0.625rem;
+
+  /* Sidebar — slightly off-white, distinct from main background */
+  --sidebar:               oklch(0.985 0 0);
+  --sidebar-foreground:    oklch(0.145 0 0);
+  --sidebar-primary:       oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent:        oklch(0.97  0 0);
+  --sidebar-accent-foreground:  oklch(0.205 0 0);
+  --sidebar-border:        oklch(0.922 0 0);
+  --sidebar-ring:          oklch(0.708 0 0);
+
+  /* ── Shadow tokens ──────────────────────────────────────────────────────
+     Named shadows so every card uses the same depth system. Light mode
+     uses pure black shadows at very low opacity — they read as neutral
+     gray against white backgrounds, which is more natural than colored
+     shadows. Colored shadows (shadow-primary/20) are reserved for the
+     primary CTA button and the sponsor card, where they reinforce brand.
+  ── */
+  --shadow-card:           0 2px 24px rgba(0, 0, 0, 0.06);
+  --shadow-card-elevated:  0 4px 48px rgba(0, 0, 0, 0.13);
+  --shadow-card-hover:     0 16px 48px rgba(0, 0, 0, 0.10);
+  --shadow-card-float:     0 24px 64px rgba(0, 0, 0, 0.12);
+  --shadow-button:         0 2px 12px rgba(0, 0, 0, 0.08);
+  --shadow-button-hover:   0 4px 24px rgba(0, 0, 0, 0.12);
+
+  /* ── Transition tokens ──────────────────────────────────────────────────
+     Consistent easing curves. fast = interactions (button click, chip
+     toggle). base = hover states, card lift. slow = section reveals,
+     success animations. spring = playful physical interactions (check pop,
+     chip select).
+  ── */
+  --ease-fast:   cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-base:   cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-slow:   cubic-bezier(0.16, 0.8, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out:    cubic-bezier(0, 0, 0.2, 1);
+
+  --duration-fast:   150ms;
+  --duration-base:   250ms;
+  --duration-slow:   450ms;
+  --duration-reveal: 650ms;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   3. CSS CUSTOM PROPERTIES — DARK MODE
+   ─────────────────────────────────────────────────────────────────────────
+   Dark mode inverts the surface/foreground relationship. Primary becomes
+   white (the page IS dark, so white is the "brand" color in that context).
+   Accent collapses to a single dark gray — we don't use the teal gradient
+   in dark mode because the contrast is insufficient.
+───────────────────────────────────────────────────────────────────────── */
+.dark {
+  --background:            oklch(0.145 0 0);
+  --foreground:            oklch(0.985 0 0);
+  --card:                  oklch(0.145 0 0);
+  --card-foreground:       oklch(0.985 0 0);
+  --popover:               oklch(0.145 0 0);
+  --popover-foreground:    oklch(0.985 0 0);
+
+  /* In dark mode, "primary" is white — the contrast element on dark bg */
+  --primary:               oklch(0.985 0 0);
+  --primary-foreground:    oklch(0.205 0 0);
+
+  --secondary:             oklch(0.269 0 0);
+  --secondary-foreground:  oklch(0.985 0 0);
+  --muted:                 oklch(0.269 0 0);
+  --muted-foreground:      oklch(0.708 0 0);
+  --accent:                oklch(0.269 0 0);
+  --accent-foreground:     oklch(0.985 0 0);
+
+  --destructive:           oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+
+  --border:                oklch(0.269 0 0);
+  --input:                 oklch(0.269 0 0);
+  --ring:                  oklch(0.439 0 0);
+
+  --chart-1:               oklch(0.488 0.243 264.376);
+  --chart-2:               oklch(0.696 0.17  162.48);
+  --chart-3:               oklch(0.769 0.188 70.08);
+  --chart-4:               oklch(0.627 0.265 303.9);
+  --chart-5:               oklch(0.645 0.246 16.439);
+
+  --sidebar:               oklch(0.205 0 0);
+  --sidebar-foreground:    oklch(0.985 0 0);
+  --sidebar-primary:       oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent:        oklch(0.269 0 0);
+  --sidebar-accent-foreground:  oklch(0.205 0 0);
+  --sidebar-border:        oklch(0.269 0 0);
+  --sidebar-ring:          oklch(0.439 0 0);
+
+  /* Shadows are lighter in dark mode — white-tinted instead of black */
+  --shadow-card:           0 2px 24px rgba(0, 0, 0, 0.30);
+  --shadow-card-elevated:  0 4px 48px rgba(0, 0, 0, 0.45);
+  --shadow-card-hover:     0 16px 48px rgba(0, 0, 0, 0.40);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   4. @THEME INLINE — TAILWIND V4 TOKEN BRIDGE
+   ─────────────────────────────────────────────────────────────────────────
+   Maps CSS custom properties to Tailwind utility names. The @theme inline
+   directive tells Tailwind to generate classes from these values without
+   creating a separate design token file. Every mapping is intentional:
+
+   Font families: We use three. Sans (Geist) for UI text — clean, modern,
+   excellent at small sizes. Mono (Geist Mono) for code. Serif (Playfair
+   Display) for editorial headings — it adds warmth and human character to
+   what would otherwise be a very utilitarian tech-nonprofit aesthetic.
+
+   The serif is used sparingly: section headings, kit names, the hero
+   headline, issue numbers in stories, and the manifesto quote. Used
+   everywhere, it would feel fussy. Used selectively, it gives the site
+   a publication feel — which is exactly right for a newsletter page.
+───────────────────────────────────────────────────────────────────────── */
+@theme inline {
+  /* Fonts */
+  --font-sans:   var(--font-sans), 'Geist', 'Geist Fallback';
+  --font-mono:   var(--font-mono), 'Geist Mono', 'Geist Mono Fallback';
+  --font-serif:  var(--font-serif), 'Playfair Display', serif;
+
+  /* Colors — mapped from custom properties */
+  --color-background:            var(--background);
+  --color-foreground:            var(--foreground);
+  --color-card:                  var(--card);
+  --color-card-foreground:       var(--card-foreground);
+  --color-popover:               var(--popover);
+  --color-popover-foreground:    var(--popover-foreground);
+  --color-primary:               var(--primary);
+  --color-primary-foreground:    var(--primary-foreground);
+  --color-secondary:             var(--secondary);
+  --color-secondary-foreground:  var(--secondary-foreground);
+  --color-muted:                 var(--muted);
+  --color-muted-foreground:      var(--muted-foreground);
+  --color-accent:                var(--accent);
+  --color-accent-foreground:     var(--accent-foreground);
+  --color-destructive:           var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border:                var(--border);
+  --color-input:                 var(--input);
+  --color-ring:                  var(--ring);
+  --color-chart-1:               var(--chart-1);
+  --color-chart-2:               var(--chart-2);
+  --color-chart-3:               var(--chart-3);
+  --color-chart-4:               var(--chart-4);
+  --color-chart-5:               var(--chart-5);
+
+  /* Border radius tokens */
+  --radius-sm:   calc(var(--radius) - 4px);   /* 6px  — tight elements */
+  --radius-md:   calc(var(--radius) - 2px);   /* 8px  — small buttons  */
+  --radius-lg:   var(--radius);               /* 10px — base           */
+  --radius-xl:   calc(var(--radius) + 4px);   /* 14px — inputs         */
+  --radius-2xl:  calc(var(--radius) + 10px);  /* 20px — medium cards   */
+  --radius-3xl:  calc(var(--radius) + 14px);  /* 24px — large cards    */
+
+  /* Sidebar colors */
+  --color-sidebar:                      var(--sidebar);
+  --color-sidebar-foreground:           var(--sidebar-foreground);
+  --color-sidebar-primary:              var(--sidebar-primary);
+  --color-sidebar-primary-foreground:   var(--sidebar-primary-foreground);
+  --color-sidebar-accent:               var(--sidebar-accent);
+  --color-sidebar-accent-foreground:    var(--sidebar-accent-foreground);
+  --color-sidebar-border:               var(--sidebar-border);
+  --color-sidebar-ring:                 var(--sidebar-ring);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   5. @LAYER BASE
+   ─────────────────────────────────────────────────────────────────────────
+   Base layer contains opinionated resets and foundational decisions that
+   every element inherits. These aren't utility overrides — they're the
+   defaults that make the site feel cohesive without any class at all.
+───────────────────────────────────────────────────────────────────────── */
+@layer base {
+
+  /* ── Universal box model + border reset ────────────────────────────────
+     border-border applies the CSS var to every element's border-color,
+     so `border` alone (without `border-gray-200` etc.) is always on-brand.
+     outline-ring/50 means focus outlines inherit the ring color at 50%
+     opacity — subtle but accessible.
+  ── */
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  /* ── Body — base typography defaults ───────────────────────────────────
+     font-feature-settings enables:
+       "kern" — kerning pairs (better letter spacing)
+       "liga" — standard ligatures (fi, fl, etc.)
+       "calt" — contextual alternates
+     text-rendering: optimizeLegibility improves subpixel rendering at
+     small sizes. These are invisible improvements that accumulate.
+  ── */
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    text-rendering:        optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── Smooth scrolling ───────────────────────────────────────────────────
+     Applied to html, not body, for compatibility with fixed/sticky headers.
+     scroll-behavior: smooth enables all anchor (#) navigation to animate.
+     We pair this with overflow-x-hidden to prevent horizontal scroll caused
+     by blobs/ornaments that extend slightly beyond the viewport.
+  ── */
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    scroll-padding-top: 80px; /* compensates for any fixed header height */
+  }
+
+  /* ── Selection color ────────────────────────────────────────────────────
+     Using the brand primary at 20% opacity is more elegant than the default
+     blue highlight. Text stays foreground-colored and readable.
+  ── */
+  ::selection {
+    background-color: hsl(from var(--primary) h s l / 0.15);
+    color:            inherit;
+  }
+
+  ::-moz-selection {
+    background-color: hsl(from var(--primary) h s l / 0.15);
+    color:            inherit;
+  }
+
+  /* ── Focus visible — keyboard only ─────────────────────────────────────
+     :focus-visible fires only for keyboard navigation, not mouse clicks.
+     This keeps interactive elements visually clean during mouse use while
+     remaining fully accessible for keyboard/screen-reader users.
+     The 2px offset creates a gap between the element edge and the ring —
+     prevents the ring from overlapping the element's own border.
+  ── */
+  :focus-visible {
+    outline:        2px solid hsl(from var(--primary) h s l / 0.55);
+    outline-offset: 2px;
+    border-radius:  var(--radius-sm);
+  }
+
+  /* ── Headings — serif by default, then sans for UI ─────────────────────
+     h1–h2: Playfair Display. Large editorial headings benefit from
+     the serif's weight contrast and warmth. The tracking-tight compensates
+     for Playfair's naturally wide spacing at large sizes.
+
+     h3–h6: System sans. Smaller headings function as UI labels rather than
+     editorial statements — sans is more legible at 14-18px.
+  ── */
+  h1,
+  h2 {
+    font-family:     var(--font-serif), 'Playfair Display', serif;
+    font-weight:     700;
+    letter-spacing:  -0.02em;
+    line-height:     1.06;
+  }
+
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family:  var(--font-sans), 'Geist', sans-serif;
+    font-weight:  600;
+    line-height:  1.3;
+  }
+
+  /* ── Paragraph defaults ─────────────────────────────────────────────────
+     1.7 leading on body copy is our standard. Research shows 1.5–1.8 is
+     optimal for reading comfort in paragraph text. We go 1.7 as a middle
+     ground — spacious but not airy.
+  ── */
+  p {
+    line-height: 1.7;
+  }
+
+  /* ── Links — subtle underline, no color override ───────────────────────
+     Base links don't override color — they inherit. The underline uses
+     text-decoration-color to be slightly lighter than the text itself,
+     which reads as a soft affordance without being aggressive. Individual
+     components override this for their specific needs.
+  ── */
+  a {
+    text-decoration:       underline;
+    text-decoration-color: currentColor;
+    text-underline-offset: 3px;
+    transition:            color var(--duration-fast) var(--ease-fast),
+                           text-decoration-color var(--duration-fast) var(--ease-fast);
+  }
+
+  /* Navigation links and button-like elements opt out of underline */
+  nav a,
+  button,
+  [role="button"] {
+    text-decoration: none;
+  }
+
+  /* ── Images ─────────────────────────────────────────────────────────────
+     display: block prevents the 4px gap below inline images. max-width
+     ensures they never overflow their container.
+  ── */
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display:   block;
+    max-width: 100%;
+  }
+
+  /* ── Form elements — inherit font ───────────────────────────────────────
+     Browsers apply a different (usually smaller) font to form elements.
+     Inheriting font-* properties makes inputs, selects, and textareas
+     match the rest of the site without any class.
+  ── */
+  input,
+  button,
+  textarea,
+  select {
+    font:           inherit;
+    letter-spacing: inherit;
+  }
+
+  /* ── Scrollbar — webkit only, subtle ───────────────────────────────────
+     Custom scrollbars in webkit-based browsers. Thin (6px) with rounded
+     thumb. Thumb color matches border at rest, muted-foreground on hover.
+     Track is transparent — we don't want a visible rail taking up space.
+     This is purely aesthetic; Firefox and other browsers use system default.
+  ── */
+  ::-webkit-scrollbar {
+    width:  6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background:    hsl(from var(--border) h s l / 0.8);
+    border-radius: 999px;
+    transition:    background var(--duration-fast) var(--ease-fast);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(from var(--muted-foreground) h s l / 0.6);
+  }
+
+  /* ── Horizontal rule ────────────────────────────────────────────────────
+     Default hr is ugly. This gives a clean 1px line using the border token.
+  ── */
+  hr {
+    border:     none;
+    border-top: 1px solid var(--border);
+    margin:     1.5rem 0;
+  }
+
+  /* ── Code elements ──────────────────────────────────────────────────────
+     Monospace with a subtle background and border. Not styled aggressively
+     because code appears rarely in this project.
+  ── */
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono), 'Geist Mono', monospace;
+    font-size:   0.875em;
+  }
+
+  code:not(pre code) {
+    background:    hsl(from var(--muted) h s l / 0.8);
+    border:        1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding:       0.1em 0.4em;
+  }
+
+  /* ── Lists ──────────────────────────────────────────────────────────────
+     Reset browser list padding. Components that need list styling apply
+     their own via Tailwind.
+  ── */
+  ul,
+  ol {
+    padding-left: 0;
+    list-style:   none;
+  }
+
+  /* ── Table ──────────────────────────────────────────────────────────────
+     Collapsed borders, consistent with border token.
+  ── */
+  table {
+    border-collapse: collapse;
+    width:           100%;
+  }
+
+  td,
+  th {
+    text-align: left;
+    padding:    0.5rem 0.75rem;
+    border:     1px solid var(--border);
+  }
+
+  th {
+    font-weight: 600;
+    background:  hsl(from var(--muted) h s l / 0.5);
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   6. @LAYER COMPONENTS
+   ─────────────────────────────────────────────────────────────────────────
+   Component layer defines class-based patterns that appear repeatedly
+   across the site. These are NOT utility overrides — they're semantic
+   abstractions. Each class solves a specific design problem.
+
+   Design principle: components should be composable. .kc-card is the
+   base. .kc-card--primary overlays the blue treatment. .kc-card--elevated
+   adds more shadow. You mix them: class="kc-card kc-card--elevated".
+───────────────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* ── SECTION WRAPPERS ──────────────────────────────────────────────────
+     Two background treatments used across the site: white and primary
+     (blue gradient). The primary treatment is the same as the footer —
+     four animated blobs, grid texture, diagonal overlays, edge shimmers.
+  ── */
+
+  /* White section — subtle dot matrix adds texture without being visible */
+  .kc-section-white {
+    @apply bg-background;
+    position: relative;
+  }
+
+  .kc-section-white::before {
+    content:    '';
+    position:   absolute;
+    inset:      0;
+    background-image:
+      radial-gradient(rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events:  none;
+    opacity:         0.4;
+  }
+
+  /* Primary section — full blue gradient with all atmospheric effects */
+  .kc-section-primary {
+    position:   relative;
+    overflow:   hidden;
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, var(--accent) 100%);
+  }
+
+  /* Grid texture for primary sections — white lines */
+  .kc-section-primary::before {
+    content:    '';
+    position:   absolute;
+    inset:      0;
+    background-image:
+      linear-gradient(rgba(255,255,255,1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px);
+    background-size: 55px 55px;
+    opacity:         0.026;
+    pointer-events:  none;
+  }
+
+  /* Top edge shimmer — very subtle highlight on the upper edge */
+  .kc-section-primary::after {
+    content:    '';
+    position:   absolute;
+    top:        0;
+    left:       0;
+    right:      0;
+    height:     1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.18), transparent);
+    pointer-events: none;
+  }
+
+  /* ── CARDS ──────────────────────────────────────────────────────────────
+     Card system: base + modifier variants.
+
+     .kc-card: The foundation. White background, subtle border, soft shadow.
+     Border opacity (7% black) is chosen because it's visible against white
+     without being harsh. Pure --border variable looks too gray in context.
+
+     Shadow: 0 2px 24px at 6% opacity. The 24px blur radius creates a
+     diffuse soft shadow that doesn't look "designed" — it looks natural,
+     like light softly pooling under an elevated surface.
+  ── */
+  .kc-card {
+    background:    white;
+    border:        1px solid rgba(0, 0, 0, 0.07);
+    border-radius: 1.5rem; /* 24px — rounded-3xl */
+    box-shadow:    var(--shadow-card);
+    overflow:      hidden;
+    position:      relative;
+  }
+
+  /* Elevated variant — used for the newsletter signup card */
+  .kc-card--elevated {
+    box-shadow: var(--shadow-card-elevated);
+  }
+
+  /* Hover-lift variant — used for kit cards, story cards */
+  .kc-card--interactive {
+    transition:
+      transform   var(--duration-base) var(--ease-base),
+      box-shadow  var(--duration-base) var(--ease-base);
+    cursor: pointer;
+  }
+
+  .kc-card--interactive:hover {
+    transform:  translateY(-6px);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .kc-card--interactive:active {
+    transform:  translateY(-2px);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Primary / blue variant — the sponsor card, CTA card */
+  .kc-card--primary {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, var(--accent) 100%);
+    border:     none;
+    box-shadow: 0 8px 32px hsl(var(--primary) / 0.25);
+    color:      white;
+  }
+
+  /* Gradient top bar on white cards — visual anchor */
+  .kc-card-bar {
+    height:     4px;
+    width:      100%;
+    background: linear-gradient(to right, hsl(var(--primary)), var(--accent), hsl(var(--primary)));
+    flex-shrink: 0;
+  }
+
+  /* Card body padding zones */
+  .kc-card-header {
+    padding:       2rem 2.5rem 1.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .kc-card-body {
+    padding: 1.75rem 2.5rem 2.5rem;
+  }
+
+  /* ── EYEBROW LABELS ─────────────────────────────────────────────────────
+     Eyebrows appear above section headings and signal category/context.
+     They are deliberately understated — 9.5px, very spaced uppercase,
+     low opacity. The line before them (kc-eyebrow-line) grounds them
+     visually without needing a full-width rule.
+
+     Light variant is used on the blue background sections.
+  ── */
+  .kc-eyebrow {
+    display:       flex;
+    align-items:   center;
+    gap:           0.625rem;
+  }
+
+  .kc-eyebrow-line {
+    height:           1px;
+    width:            1.25rem; /* w-5 */
+    flex-shrink:      0;
+    border-radius:    999px;
+    background-color: hsl(var(--primary) / 0.35);
+  }
+
+  .kc-eyebrow-text {
+    font-size:      9.5px;
+    font-weight:    900;
+    text-transform: uppercase;
+    letter-spacing: 0.32em;
+    color:          hsl(var(--primary) / 0.48);
+    white-space:    nowrap;
+  }
+
+  /* Light variants for primary (blue) background sections */
+  .kc-eyebrow-line--light {
+    background-color: rgba(255, 255, 255, 0.28);
+  }
+
+  .kc-eyebrow-text--light {
+    color: rgba(255, 255, 255, 0.30);
+  }
+
+  /* ── ACCENT RULE ────────────────────────────────────────────────────────
+     The 2.5px primary-color rule that appears under section headings.
+     Intentionally short (w-8 = 32px) — it's a punctuation mark, not a
+     full underline. The roundness (rounded-full) softens it slightly.
+  ── */
+  .kc-rule {
+    margin-top:    1rem;
+    height:        2.5px;
+    width:         2rem;
+    border-radius: 999px;
+    background:    hsl(var(--primary));
+    flex-shrink:   0;
+  }
+
+  .kc-rule--light {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  /* ── BUTTONS ────────────────────────────────────────────────────────────
+     Button system uses transform + shadow for feedback rather than
+     color change alone. This creates a more physical, tactile feel.
+
+     The 0.5px lift on hover and shadow-lg is the key — it makes the button
+     appear to float toward the user, which is more satisfying than just
+     a color darken.
+
+     active:scale-[0.98] provides a "press" moment that confirms the click.
+  ── */
+
+  /* Primary button — white background on blue sections */
+  .kc-btn-primary {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    gap:             0.5rem;
+    border-radius:   0.75rem;
+    padding:         0.875rem 2rem;
+    font-size:       0.875rem;
+    font-weight:     700;
+    color:           hsl(var(--primary));
+    background:      white;
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.10),
+      0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+    transition:
+      transform   var(--duration-fast) var(--ease-fast),
+      box-shadow  var(--duration-fast) var(--ease-fast);
+    cursor:          pointer;
+  }
+
+  .kc-btn-primary:hover {
+    transform:  translateY(-1px);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.14),
+      0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  }
+
+  .kc-btn-primary:active {
+    transform:  scale(0.98);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Brand button — primary color on white sections */
+  .kc-btn-brand {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    gap:             0.5rem;
+    border-radius:   0.75rem;
+    padding:         0.875rem 2rem;
+    font-size:       0.875rem;
+    font-weight:     700;
+    color:           white;
+    background:      hsl(var(--primary));
+    box-shadow:
+      0 2px 12px hsl(var(--primary) / 0.22),
+      0 0 0 1px hsl(var(--primary) / 0.1) inset;
+    transition:
+      transform   var(--duration-fast) var(--ease-fast),
+      box-shadow  var(--duration-fast) var(--ease-fast),
+      opacity     var(--duration-fast) var(--ease-fast);
+    cursor:          pointer;
+  }
+
+  .kc-btn-brand:hover {
+    transform:  translateY(-1px);
+    box-shadow:
+      0 8px 32px hsl(var(--primary) / 0.28),
+      0 0 0 1px hsl(var(--primary) / 0.1) inset;
+  }
+
+  .kc-btn-brand:active {
+    transform: scale(0.98);
+  }
+
+  .kc-btn-brand:disabled {
+    opacity: 0.55;
+    cursor:  not-allowed;
+    transform: none;
+  }
+
+  /* Ghost button — border only, for secondary actions on blue */
+  .kc-btn-ghost {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    gap:             0.5rem;
+    border-radius:   0.75rem;
+    padding:         0.875rem 2rem;
+    font-size:       0.875rem;
+    font-weight:     600;
+    color:           rgba(255, 255, 255, 0.40);
+    background:      transparent;
+    border:          1px solid rgba(255, 255, 255, 0.12);
+    transition:
+      color       var(--duration-fast) var(--ease-fast),
+      border-color var(--duration-fast) var(--ease-fast),
+      transform   var(--duration-fast) var(--ease-fast);
+    cursor:          pointer;
+  }
+
+  .kc-btn-ghost:hover {
+    color:        rgba(255, 255, 255, 0.65);
+    border-color: rgba(255, 255, 255, 0.22);
+    transform:    translateY(-0.5px);
+  }
+
+  /* ── INPUTS ─────────────────────────────────────────────────────────────
+     Form inputs use a subtle border that strengthens on focus rather than
+     changing color abruptly. The focus ring is a soft glow (box-shadow)
+     rather than the browser default outline — it matches the brand without
+     being harsh. Error state adds a rose border and a faint red glow.
+  ── */
+  .kc-input {
+    height:           2.75rem; /* h-11 */
+    width:            100%;
+    border-radius:    0.75rem;
+    border:           1px solid rgba(0, 0, 0, 0.08);
+    background:       transparent;
+    padding:          0 1rem;
+    font-size:        0.9063rem;
+    color:            hsl(var(--foreground) / 0.75);
+    outline:          none;
+    transition:
+      border-color var(--duration-fast) var(--ease-fast),
+      box-shadow   var(--duration-fast) var(--ease-fast);
+  }
+
+  .kc-input::placeholder {
+    color: hsl(var(--foreground) / 0.22);
+  }
+
+  .kc-input:focus {
+    border-color: hsl(var(--primary) / 0.35);
+    box-shadow:   0 0 0 3px hsl(var(--primary) / 0.06);
+  }
+
+  .kc-input--error {
+    border-color: #fda4af; /* rose-300 */
+    box-shadow:   0 0 0 3px rgba(244, 63, 94, 0.06);
+  }
+
+  .kc-input--error:focus {
+    border-color: #fb7185; /* rose-400 */
+    box-shadow:   0 0 0 3px rgba(244, 63, 94, 0.10);
+  }
+
+  /* Tall input (h-12) used in newsletter signup */
+  .kc-input--lg {
+    height: 3rem;
+    font-size: 0.9375rem;
+  }
+
+  /* ── PREFERENCE CHIPS ───────────────────────────────────────────────────
+     Toggleable chips for newsletter preference selection. The inactive
+     state is very quiet (7% black border, 38% opacity text) — the active
+     state should feel like it "turns on" rather than just changing color.
+
+     The colored active states use per-category tailwind classes applied
+     inline. The dot before the label (when active) reinforces the selection
+     through both color and a new visual element — not just a color change.
+
+     active:scale-[0.97] gives a physical press moment.
+  ── */
+  .kc-chip {
+    display:         inline-flex;
+    align-items:     center;
+    gap:             0.375rem;
+    border-radius:   999px;
+    border:          1px solid rgba(0, 0, 0, 0.08);
+    padding:         0.5rem 0.875rem;
+    font-size:       0.75rem;
+    font-weight:     600;
+    background:      transparent;
+    color:           hsl(var(--foreground) / 0.38);
+    cursor:          pointer;
+    user-select:     none;
+    transition:
+      border-color var(--duration-fast) var(--ease-fast),
+      color        var(--duration-fast) var(--ease-fast),
+      background   var(--duration-fast) var(--ease-fast),
+      transform    var(--duration-fast) var(--ease-spring);
+  }
+
+  .kc-chip:hover {
+    border-color: hsl(var(--primary) / 0.18);
+    color:        hsl(var(--primary) / 0.60);
+  }
+
+  .kc-chip:active {
+    transform: scale(0.97);
+  }
+
+  .kc-chip-dot {
+    height:       6px;
+    width:        6px;
+    flex-shrink:  0;
+    border-radius: 999px;
+  }
+
+  /* ── SOCIAL PROOF PILL ──────────────────────────────────────────────────
+     The "38 student builders · 23 partner orgs" pill. Uses the muted
+     background to be visually distinct from the surrounding text without
+     being loud. The icon before it grounds it as a verified fact.
+  ── */
+  .kc-proof-pill {
+    display:       inline-flex;
+    align-items:   center;
+    gap:           0.5rem;
+    border-radius: 999px;
+    border:        1px solid rgba(0, 0, 0, 0.06);
+    background:    hsl(var(--muted) / 0.04);
+    padding:       0.5rem 1rem;
+    font-size:     0.71875rem;
+    font-weight:   600;
+    color:         hsl(var(--foreground) / 0.35);
+  }
+
+  /* ── INLINE LINK ────────────────────────────────────────────────────────
+     Arrow-right link pattern used throughout the site. The gap increases
+     on hover, giving the impression the arrow is "pulling" the label.
+     transition-all on gap requires individual properties in practice —
+     gap doesn't animate in older browsers, so we use margin-left on the
+     arrow icon via group-hover.
+  ── */
+  .kc-link-arrow {
+    display:     inline-flex;
+    align-items: center;
+    gap:         0.375rem;
+    font-size:   0.8125rem;
+    font-weight: 600;
+    color:       hsl(var(--primary) / 0.48);
+    transition:
+      gap   var(--duration-fast) var(--ease-fast),
+      color var(--duration-fast) var(--ease-fast);
+  }
+
+  .kc-link-arrow:hover {
+    gap:   0.625rem;
+    color: hsl(var(--primary));
+  }
+
+  /* ── AVATAR STACK ───────────────────────────────────────────────────────
+     Overlapping avatar circles used in the hero to show "people who joined".
+     Negative margin creates the overlap. z-index decreases left-to-right
+     so each avatar appears to slide behind the previous.
+  ── */
+  .kc-avatar-stack {
+    display:  flex;
+    direction: rtl; /* right-to-left so z-index stacks correctly */
+  }
+
+  .kc-avatar-stack > * {
+    direction: ltr;
+    margin-left: -0.5rem;
+  }
+
+  .kc-avatar-stack > *:first-child {
+    margin-left: 0;
+  }
+
+  /* ── STATS ──────────────────────────────────────────────────────────────
+     The large count-up numbers. Serif font for the number itself
+     (emotional weight), sans for the label and sub-label below.
+  ── */
+  .kc-stat-number {
+    font-family:  var(--font-serif), 'Playfair Display', serif;
+    font-weight:  700;
+    line-height:  1;
+    color:        white;
+    font-size:    clamp(2.25rem, 4vw, 3.25rem);
+  }
+
+  .kc-stat-suffix {
+    font-family:  var(--font-serif), 'Playfair Display', serif;
+    font-weight:  700;
+    font-size:    1.75rem;
+    color:        rgba(255, 255, 255, 0.38);
+    line-height:  1;
+    margin-bottom: 0.375rem;
+    align-self:   flex-end;
+  }
+
+  .kc-stat-label {
+    font-size:   0.84375rem;
+    font-weight: 600;
+    color:       rgba(255, 255, 255, 0.55);
+    margin-top:  0.5rem;
+  }
+
+  .kc-stat-sub {
+    font-size: 0.71875rem;
+    color:     rgba(255, 255, 255, 0.28);
+    margin-top: 0.25rem;
+  }
+
+  /* ── STORY CARDS (on primary bg) ───────────────────────────────────────
+     Story cards on the blue primary background use a translucent white
+     treatment: bg-white/[0.06] with backdrop-blur-sm. This creates a
+     "frosted glass" appearance that layers naturally on the gradient.
+     The border at white/[0.08] is just enough to define the edge.
+  ── */
+  .kc-story-card {
+    background:     rgba(255, 255, 255, 0.06);
+    border:         1px solid rgba(255, 255, 255, 0.08);
+    border-radius:  1.5rem;
+    overflow:       hidden;
+    backdrop-filter: blur(8px);
+    transition:
+      border-color var(--duration-base) var(--ease-base),
+      background   var(--duration-base) var(--ease-base);
+  }
+
+  .kc-story-card:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    background:   rgba(255, 255, 255, 0.10);
+  }
+
+  /* ── TESTIMONIAL CARDS ──────────────────────────────────────────────────
+     White cards with a large serif quote mark as decoration. The quote
+     mark uses opacity 0.06 — barely visible, but adds typographic richness.
+  ── */
+  .kc-testimonial-card {
+    background:    white;
+    border:        1px solid rgba(0, 0, 0, 0.07);
+    border-radius: 1.5rem;
+    box-shadow:    var(--shadow-card);
+    overflow:      hidden;
+    position:      relative;
+    transition:
+      transform   var(--duration-base) var(--ease-base),
+      box-shadow  var(--duration-base) var(--ease-base);
+    padding: 1.75rem;
+  }
+
+  .kc-testimonial-card:hover {
+    transform:  translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  /* ── FAQ ACCORDION ITEMS ────────────────────────────────────────────────
+     FAQ items on the primary background. Closed state: very quiet
+     (border white/[0.08], bg white/[0.04]). Open state: border lightens
+     to white/[0.18], background brightens to white/[0.10]. The inner
+     glow (::before pseudo-element) adds a subtle radial highlight at
+     the top of the open item — as if light is entering from above.
+  ── */
+  .kc-faq-item {
+    position:      relative;
+    border-radius: 1rem;
+    border:        1px solid rgba(255, 255, 255, 0.08);
+    background:    rgba(255, 255, 255, 0.04);
+    overflow:      hidden;
+    transition:
+      border-color var(--duration-base) var(--ease-base),
+      background   var(--duration-base) var(--ease-base);
+  }
+
+  .kc-faq-item:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+    background:   rgba(255, 255, 255, 0.07);
+  }
+
+  .kc-faq-item--open {
+    border-color: rgba(255, 255, 255, 0.18);
+    background:   rgba(255, 255, 255, 0.10);
+  }
+
+  .kc-faq-item--open::before {
+    content:    '';
+    position:   absolute;
+    inset:      0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.07) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  /* Bottom sweep line on open FAQ items */
+  .kc-faq-sweep {
+    position:   absolute;
+    bottom:     0;
+    left:       0;
+    height:     1px;
+    background: linear-gradient(to right, rgba(255,255,255,0.22), transparent);
+    transition: width var(--duration-slow) var(--ease-base);
+    width:      0;
+  }
+
+  .kc-faq-item--open .kc-faq-sweep {
+    width: 100%;
+  }
+
+  /* ── MANIFESTO CARD ─────────────────────────────────────────────────────
+     The white card sitting on the primary background in the "Why Subscribe"
+     section. White-on-blue for maximum contrast. Gradient bar on top
+     connects it visually to the brand system.
+  ── */
+  .kc-manifesto {
+    background:    white;
+    border-radius: 1.5rem;
+    overflow:      hidden;
+    box-shadow:    0 8px 40px rgba(0, 0, 0, 0.12);
+  }
+
+  .kc-manifesto-bar {
+    height:     4px;
+    background: linear-gradient(to right, hsl(var(--primary)), var(--accent), hsl(var(--primary)));
+  }
+
+  /* ── PROCESS STEP ───────────────────────────────────────────────────────
+     Numbered steps with icon nodes and a connecting gradient line.
+  ── */
+  .kc-step-node {
+    position:     relative;
+    z-index:      10;
+    display:      flex;
+    align-items:  center;
+    justify-content: center;
+    height:       2.75rem;
+    width:        2.75rem;
+    border-radius: 999px;
+    border:       1.5px solid hsl(var(--primary) / 0.25);
+    background:   white;
+    box-shadow:   0 2px 12px hsl(var(--primary) / 0.10);
+    flex-shrink:  0;
+    transition:
+      border-color var(--duration-base) var(--ease-base),
+      box-shadow   var(--duration-base) var(--ease-base);
+  }
+
+  .kc-step-node:hover {
+    border-color: hsl(var(--primary) / 0.40);
+    box-shadow:   0 4px 20px hsl(var(--primary) / 0.18);
+  }
+
+  /* ── ORNAMENT DIVIDER ───────────────────────────────────────────────────
+     The ornamental bottom divider used in FAQ and footer sections:
+     ─────── ◆ KITCRAFT COLLECTIVE ◆ ────────
+  ── */
+  .kc-ornament {
+    display:       flex;
+    align-items:   center;
+    gap:           1.25rem;
+  }
+
+  .kc-ornament-line {
+    height:     1px;
+    flex:       1;
+  }
+
+  .kc-ornament-line--primary {
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.14));
+  }
+
+  .kc-ornament-line--primary-rev {
+    background: linear-gradient(to left, transparent, rgba(255,255,255,0.14));
+  }
+
+  .kc-ornament-diamond {
+    height:       5px;
+    width:        5px;
+    border-radius: 1px;
+    transform:    rotate(45deg);
+    flex-shrink:  0;
+    background:   rgba(255, 255, 255, 0.22);
+  }
+
+  .kc-ornament-text {
+    font-size:      9px;
+    font-weight:    900;
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+    color:          rgba(255, 255, 255, 0.22);
+    white-space:    nowrap;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   7. @KEYFRAMES — COMPLETE ANIMATION LIBRARY
+   ─────────────────────────────────────────────────────────────────────────
+   All keyframes are defined here. Each has a comment explaining what it
+   animates and where it's used. Keyframe names are prefixed by category:
+     fB*        — footer/section blob animations
+     ring*      — floating ring ornaments
+     diamond*   — rotating diamond ornaments
+     reveal*    — scroll-triggered entrance animations
+     check*     — success state animations
+     scroll*    — UI scroll indicators
+     success*   — success panel entrance sequences
+     line*      — expanding line decorations
+     shimmer*   — loading/skeleton states
+     bg*        — background effect animations
+───────────────────────────────────────────────────────────────────────── */
+
+/* ── BACKGROUND BLOBS ─────────────────────────────────────────────────── */
+
+/* Bottom-left blob — moves toward top-right on alternate.
+   The translate values (35px, -25px) are chosen to avoid crossing
+   into the safe zone where content lives. Scale 1.07 = 7% size pulse. */
+@keyframes fB1 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(35px, -25px) scale(1.07); }
+}
+
+/* Top-right blob — moves toward bottom-left (counter to fB1).
+   This creates a visual breathing rhythm where the two main blobs
+   orbit each other rather than moving in the same direction. */
+@keyframes fB2 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(-28px, 30px) scale(1.05); }
+}
+
+/* Center blob — pure scale pulse. Already centered with translate(-50%),
+   so we preserve that transform in both keyframes to avoid jumping.
+   Scaling from center creates a smooth radial breathing effect. */
+@keyframes fB3 {
+  from { transform: translate(-50%, -50%) scale(1); }
+  to   { transform: translate(-50%, -50%) scale(1.15); }
+}
+
+/* Small accent blob — same motion as fB2 but different timing.
+   The 2s delay ensures it doesn't phase-sync with fB2, which would
+   create an unpleasant synchronised pulsing effect. */
+@keyframes fB4 {
+  from { transform: translate(0, 0) scale(1); opacity: 0.8; }
+  to   { transform: translate(16px, -18px) scale(1.12); opacity: 1; }
+}
+
+/* ── FLOATING ORNAMENTS ──────────────────────────────────────────────── */
+
+/* Rings — drift slightly up and tilt. The translate + rotate combination
+   looks more organic than a pure translate, because real floating objects
+   also rotate slightly as they move through air. Opacity goes from 0.45
+   to 0.9 — the ring "brightens" as it floats up, as if catching more light. */
+@keyframes ringFloat {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+    opacity:   0.45;
+  }
+  to {
+    transform: translate(7px, -12px) rotate(10deg);
+    opacity:   0.9;
+  }
+}
+
+/* Diamonds — scale pulse with opacity. The rotate(45deg) is preserved
+   in both states to keep them diamond-shaped throughout. Scale 2.2x
+   at full expansion — they're tiny to begin with (3-6px), so 2.2x
+   still looks subtle. The opacity jump from 0.10 to 0.50 makes them
+   appear to "glow" during expansion. */
+@keyframes diamondPulse {
+  from {
+    opacity:   0.10;
+    transform: rotate(45deg) scale(1);
+  }
+  to {
+    opacity:   0.50;
+    transform: rotate(45deg) scale(2.2);
+  }
+}
+
+/* ── SCROLL INDICATOR ─────────────────────────────────────────────────── */
+
+/* The ChevronDown arrow at the bottom of the hero. translateX preserves
+   the center positioning. The 8px downward travel is enough to be noticeable
+   without being distracting — it's communicating "keep scrolling" not
+   demanding attention. */
+@keyframes scrollBounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(8px); }
+}
+
+/* ── SUCCESS STATE ANIMATIONS ─────────────────────────────────────────── */
+
+/* Check mark pop — the bounce keyframe for the ✓ icon in the success card.
+   Overshoots to 1.22x before settling at 1x. The overshoot makes it feel
+   satisfying and physical, like a spring. cubic-bezier(0.34, 1.56, 0.64, 1)
+   in the class definition provides the spring easing. */
+@keyframes checkPop {
+  0% {
+    transform: scale(0);
+    opacity:   0;
+  }
+  70% {
+    transform: scale(1.22);
+    opacity:   1;
+  }
+  100% {
+    transform: scale(1);
+    opacity:   1;
+  }
+}
+
+/* Success panel items fade up sequentially. Each element in the success
+   state adds an animation-delay in the component — staggering creates
+   a narrative rhythm: "check → name → description → interests → footer". */
+@keyframes successUp {
+  from {
+    opacity:   0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity:   1;
+    transform: translateY(0);
+  }
+}
+
+/* ── REVEAL ANIMATIONS ────────────────────────────────────────────────── */
+
+/* Standard scroll reveal — subtle translateY(16px) → 0 with fade.
+   16px chosen because it's large enough to feel like motion but small
+   enough to not look like an element "falling in from off-screen". */
+@keyframes revealUp {
+  from {
+    opacity:   0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity:   1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes revealLeft {
+  from {
+    opacity:   0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity:   1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes revealRight {
+  from {
+    opacity:   0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity:   1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes revealScale {
+  from {
+    opacity:   0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity:   1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── LINE EXPANSION ───────────────────────────────────────────────────── */
+
+/* Used for the horizontal rules flanking the FAQ section header label.
+   They start at width 0 and expand to 2.5rem. The forwards fill-mode
+   means they stay expanded after the animation completes. */
+@keyframes lineExpand {
+  from { width: 0; }
+  to   { width: 2.5rem; }
+}
+
+/* Variant for shorter lines */
+@keyframes lineExpandSm {
+  from { width: 0; }
+  to   { width: 1.25rem; }
+}
+
+/* ── BUILD PROCESS / STEP TRANSITIONS ────────────────────────────────── */
+
+/* Directional slide for content that transitions between states.
+   --dx CSS variable controls direction: positive = slide in from right,
+   negative = slide in from left. Set per-element in the component.
+   Used in the build process step selector in kit detail page. */
+@keyframes descSlide {
+  from {
+    opacity:   0;
+    transform: translateX(var(--dx, 8px));
+  }
+  to {
+    opacity:   1;
+    transform: translateX(0);
+  }
+}
+
+/* ── CHECKBOX / TOGGLE ANIMATIONS ────────────────────────────────────── */
+
+/* The check icon inside a completed activity checkbox. Same spring
+   behavior as checkPop but scaled for the smaller 10px icon size. */
+@keyframes pop {
+  0%   { transform: scale(0); opacity: 0; }
+  55%  { transform: scale(1.28); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── SHIMMER / LOADING STATES ─────────────────────────────────────────── */
+
+/* Skeleton loading shimmer — a gradient that sweeps left to right.
+   Used on image placeholders and deferred content. */
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position:  200% center; }
+}
+
+/* ── BACKGROUND SYSTEM FOR PRIMARY SECTIONS ──────────────────────────── */
+
+/* Blob animations used inside PrimaryBg component — mirrors the footer.
+   Named with bg prefix to separate from footer's fB prefix and avoid
+   conflicts when both are on-screen simultaneously. */
+@keyframes bgBlob1 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(-38px, 28px) scale(1.07); }
+}
+
+@keyframes bgBlob2 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(32px, -24px) scale(1.06); }
+}
+
+@keyframes bgBlob3 {
+  from { transform: translate(-50%, -50%) scale(1); }
+  to   { transform: translate(-50%, -50%) scale(1.15); }
+}
+
+/* ── GRADIENT SHIFT ───────────────────────────────────────────────────── */
+
+/* Slow gradient animation for the top bar on signup card. Gives it
+   a living, breathing quality without being distracting. */
+@keyframes gradientShift {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* ── FLOAT ────────────────────────────────────────────────────────────── */
+
+/* Gentle float for decorative elements. Different from scrollBounce —
+   this is slower and more meditative. */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+/* ── PING ─────────────────────────────────────────────────────────────── */
+
+/* Status indicator ping — expands and fades out.
+   Used for "live" or "active" status dots. */
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity:   0;
+  }
+}
+
+/* Slower, subtler ping variant */
+@keyframes pingSlow {
+  75%, 100% {
+    transform: scale(1.8);
+    opacity:   0;
+  }
+}
+
+/* ── SPIN ─────────────────────────────────────────────────────────────── */
+
+/* Standard 360° spin — used for loading spinners */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── PULSE OPACITY ────────────────────────────────────────────────────── */
+
+/* Opacity pulse — used for skeleton loading and "live" indicators */
+@keyframes pulseOpacity {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   8. UTILITY ANIMATION CLASSES
+   ─────────────────────────────────────────────────────────────────────────
+   These classes wire keyframes to Tailwind-style utility class names.
+   They follow the pattern: animate-{keyframeName}[-{variant}].
+   Duration and easing are chosen per-animation — there's no one-size-fits-all.
+───────────────────────────────────────────────────────────────────────── */
+
+/* ── BLOB ANIMATIONS ─────────────────────────────────────────────────── */
+
+/* Footer blob animations. These use the fB* keyframes and appear in
+   SiteFooter and the newsletter page's PrimaryBg component. */
+.animate-fB1 {
+  animation: fB1 14s ease-in-out infinite alternate;
+}
+
+.animate-fB2 {
+  animation: fB2 11s ease-in-out infinite alternate;
+}
+
+.animate-fB3 {
+  animation: fB3 8s ease-in-out infinite alternate;
+}
+
+/* Delayed variant of fB2 — used for the 4th blob. The 2s delay ensures
+   it never fully syncs with .animate-fB2, maintaining visual interest. */
+.animate-fB2-delayed {
+  animation:       fB2 9s ease-in-out infinite alternate;
+  animation-delay: 2s;
+}
+
+/* ── SUCCESS ANIMATIONS ──────────────────────────────────────────────── */
+
+/* Check mark spring pop — cubic-bezier(.34,1.56,.64,1) is the spring
+   curve. 1.56 overshoot creates the satisfying bounce. 300ms is fast
+   enough to feel snappy without feeling rushed. */
+.animate-check-pop {
+  animation: checkPop 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Success panel element fade-up. Applied with inline animation-delay
+   for staggering in the component. */
+.animate-success-up {
+  animation: successUp 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── REVEAL ANIMATIONS ───────────────────────────────────────────────── */
+
+/* Standard scroll reveal — used with IntersectionObserver in components.
+   The component controls opacity/transform directly for more flexibility,
+   but these classes are available for simpler cases. */
+.animate-reveal-up {
+  animation: revealUp var(--duration-reveal) var(--ease-base) both;
+}
+
+.animate-reveal-left {
+  animation: revealLeft var(--duration-reveal) var(--ease-base) both;
+}
+
+.animate-reveal-right {
+  animation: revealRight var(--duration-reveal) var(--ease-base) both;
+}
+
+.animate-reveal-scale {
+  animation: revealScale var(--duration-reveal) var(--ease-base) both;
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--duration-slow) var(--ease-base) both;
+}
+
+/* ── ORNAMENT ANIMATIONS ─────────────────────────────────────────────── */
+
+.animate-ring-float {
+  animation: ringFloat 10s ease-in-out infinite alternate;
+}
+
+.animate-diamond-pulse {
+  animation: diamondPulse 7s ease-in-out infinite alternate;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* ── SCROLL INDICATOR ────────────────────────────────────────────────── */
+
+.animate-scroll-bounce {
+  animation: scrollBounce 2.4s ease-in-out infinite;
+}
+
+/* ── LINE EXPAND ─────────────────────────────────────────────────────── */
+
+.animate-line-expand {
+  animation: lineExpand 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+  width: 0; /* start at 0 so the animation has somewhere to go */
+}
+
+/* ── LOADING STATES ──────────────────────────────────────────────────── */
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--border)) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% auto;
+  animation: shimmer 1.5s linear infinite;
+}
+
+.animate-pulse-opacity {
+  animation: pulseOpacity 2s ease-in-out infinite;
+}
+
+.animate-ping {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-ping-slow {
+  animation: pingSlow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ── GRADIENT SHIFT ──────────────────────────────────────────────────── */
+
+.animate-gradient-shift {
+  background-size: 200% auto;
+  animation: gradientShift 4s linear infinite;
+}
+
+/* ── STAGGER HELPERS ─────────────────────────────────────────────────── */
+
+/* Delay utilities for staggered animations. Applied alongside
+   animate-* classes: class="animate-reveal-up animate-delay-100" */
+.animate-delay-50   { animation-delay:  50ms; }
+.animate-delay-100  { animation-delay: 100ms; }
+.animate-delay-150  { animation-delay: 150ms; }
+.animate-delay-200  { animation-delay: 200ms; }
+.animate-delay-250  { animation-delay: 250ms; }
+.animate-delay-300  { animation-delay: 300ms; }
+.animate-delay-400  { animation-delay: 400ms; }
+.animate-delay-500  { animation-delay: 500ms; }
+.animate-delay-600  { animation-delay: 600ms; }
+.animate-delay-700  { animation-delay: 700ms; }
+.animate-delay-800  { animation-delay: 800ms; }
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   9. REDUCED-MOTION OVERRIDES
+   ─────────────────────────────────────────────────────────────────────────
+   prefers-reduced-motion: reduce is a user preference that signals they
+   have vestibular disorders or motion sensitivity. We must respect it.
+
+   Strategy: disable animations entirely by setting duration to 0.01ms
+   (not 0, as some browsers skip events on 0-duration animations). We keep
+   transition: opacity for functional state changes (hover, focus) that
+   are necessary for usability, but remove all decorative motion.
+───────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+
+  /* All elements — kill animation and transition */
+  *,
+  *::before,
+  *::after {
+    animation-duration:   0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration:  0.01ms !important;
+    scroll-behavior:      auto !important;
+  }
+
+  /* Blobs — remove entirely, show as static opacity */
+  .animate-fB1,
+  .animate-fB2,
+  .animate-fB3,
+  .animate-fB2-delayed,
+  .animate-ring-float,
+  .animate-diamond-pulse,
+  .animate-float,
+  .animate-scroll-bounce {
+    animation: none !important;
+  }
+
+  /* Preserve opacity transitions for state changes (hover, focus) —
+     these are functionally necessary for usability, not decorative. */
+  button,
+  a,
+  input,
+  .kc-btn-primary,
+  .kc-btn-brand,
+  .kc-btn-ghost,
+  .kc-chip,
+  .kc-card--interactive {
+    transition: opacity 0.1s ease !important;
+    transform:  none !important;
+  }
+
+  /* Success check should still appear, just without the bounce */
+  .animate-check-pop {
+    animation: fadeIn 0.2s ease forwards !important;
+  }
+
+  /* Success panel should appear immediately */
+  .animate-success-up {
+    animation: fadeIn 0.1s ease both !important;
+  }
+
+  /* Reveal animations — just fade in, no movement */
+  .animate-reveal-up,
+  .animate-reveal-left,
+  .animate-reveal-right,
+  .animate-reveal-scale {
+    animation: fadeIn 0.3s ease both !important;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   10. PRINT STYLES
+   ─────────────────────────────────────────────────────────────────────────
+   When someone prints the page, we strip all the decorative visual system
+   and present clean, readable content. The primary brand color is retained
+   as black in print — most printers convert color anyway, but being
+   explicit ensures consistent output.
+───────────────────────────────────────────────────────────────────────── */
+@media print {
+
+  /* Reset background and text to black/white */
+  *,
+  *::before,
+  *::after {
+    background: white !important;
+    color:      black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Remove all animations */
+  * {
+    animation:  none !important;
+    transition: none !important;
+  }
+
+  /* Hide purely decorative elements */
+  .animate-fB1,
+  .animate-fB2,
+  .animate-fB3,
+  .animate-fB2-delayed,
+  [class*="blob"],
+  [class*="ornament"],
+  [class*="ring"],
+  [class*="diamond"],
+  nav,
+  footer button,
+  .kc-btn-ghost {
+    display: none !important;
+  }
+
+  /* Cards print with a simple border */
+  .kc-card,
+  .kc-story-card,
+  .kc-testimonial-card,
+  .kc-manifesto {
+    border:        1px solid #ccc !important;
+    border-radius: 0 !important;
+    box-shadow:    none !important;
+    page-break-inside: avoid;
+  }
+
+  /* Links show their URL after the text */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.75em;
+    color: #555 !important;
+  }
+
+  /* Don't show URL for hash links or javascript: links */
+  a[href^="#"]::after,
+  a[href^="javascript:"]::after {
+    content: "";
+  }
+
+  /* Keep headings with the following content */
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+  }
+
+  /* Ensure images print */
+  img {
+    max-width:         100% !important;
+    page-break-inside: avoid;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CUSTOM VARIANT — DARK MODE
+   ─────────────────────────────────────────────────────────────────────────
+   Tailwind v4 requires explicit variant declaration for class-based dark.
+   This matches .dark ancestor elements rather than prefers-color-scheme,
+   allowing user-controlled dark mode toggle.
+───────────────────────────────────────────────────────────────────────── */
+@custom-variant dark (&:is(.dark *));
