@@ -2,63 +2,80 @@
 
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 
-export default function UnsubscribePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ token?: string; success?: string }>
-}) {
-  const [token, setToken] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+export default function UnsubscribePage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-16 text-center">
+        <p>Loading...</p>
+      </div>
+    }>
+      <UnsubscribePageContent />
+    </Suspense>
+  )
+}
+
+function UnsubscribePageContent() {
+  const searchParams = useSearchParams()
   const [subscriber, setSubscriber] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [unsubscribing, setUnsubscribing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    searchParams.then((params) => {
-      const t = params.token
-      const s = params.success
-      
-      if (s === "true") {
-        setSuccess(true)
-        setLoading(false)
-        return
-      }
-      
-      setToken(t || null)
-      if (t) {
-        loadSubscriber(t)
-      } else {
-        setLoading(false)
-      }
-    })
-  }, [])
+    const token = searchParams.get("token")
+    const successParam = searchParams.get("success")
+    
+    console.log("[Unsubscribe] Token:", token)
+    console.log("[Unsubscribe] Success param:", successParam)
+    
+    if (successParam === "true") {
+      setSuccess(true)
+      setLoading(false)
+      return
+    }
+    
+    if (token) {
+      loadSubscriber(token)
+    } else {
+      console.error("[Unsubscribe] No token found")
+      setError("invalid")
+      setLoading(false)
+    }
+  }, [searchParams])
 
   async function loadSubscriber(token: string) {
+    console.log("[Unsubscribe] Loading subscriber for token:", token)
     const supabase = createClient()
     const { data, error } = await supabase
       .from("newsletter_subscribers")
-      .select("id, status, email, first_name")
+      .select("id, status, email, first_name, token")
       .eq("token", token)
       .single()
 
+    console.log("[Unsubscribe] Database response:", { data, error })
+
     if (error || !data) {
+      console.error("[Unsubscribe] Error or no subscriber:", error)
       setError("invalid")
     } else if (data.status !== "active") {
+      console.log("[Unsubscribe] Subscriber not active, status:", data.status)
       setError("already")
     } else {
+      console.log("[Unsubscribe] Subscriber loaded:", data)
       setSubscriber(data)
     }
     setLoading(false)
   }
 
   async function handleUnsubscribe() {
-    if (!token || !subscriber) return
+    if (!subscriber) return
 
+    console.log("[Unsubscribe] Unsubscribing subscriber:", subscriber.id)
     setUnsubscribing(true)
     const supabase = createClient()
     
@@ -71,10 +88,11 @@ export default function UnsubscribePage({
       .eq("id", subscriber.id)
 
     if (error) {
+      console.error("[Unsubscribe] Update error:", error)
       setError("failed")
       setUnsubscribing(false)
     } else {
-      // Show success directly instead of redirecting
+      console.log("[Unsubscribe] Success!")
       setSuccess(true)
       setUnsubscribing(false)
     }
