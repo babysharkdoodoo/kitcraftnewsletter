@@ -107,6 +107,7 @@ export default function ConfirmPage({
   useEffect(() => {
     searchParams.then(async (params) => {
       const token = params.token
+      console.log("[Confirm] Token:", token)
       if (!token) { setStatus("invalid"); return }
 
       const supabase = createClient()
@@ -116,15 +117,31 @@ export default function ConfirmPage({
         .eq("token", token)
         .single()
 
-      if (error || !subscriber) { setStatus("invalid"); return }
-      if (subscriber.status === "active") { setStatus("already"); return }
+      console.log("[Confirm] Subscriber query result:", { subscriber, error })
+      if (error || !subscriber) { 
+        console.error("[Confirm] Error or no subscriber:", error)
+        setStatus("invalid"); 
+        return 
+      }
+      if (subscriber.status === "active") { 
+        console.log("[Confirm] Already active")
+        setStatus("already"); 
+        return 
+      }
 
+      console.log("[Confirm] Updating subscriber to active")
       const { error: updateError } = await supabase
         .from("newsletter_subscribers")
         .update({ status: "active", unsubscribed_at: null })
         .eq("id", subscriber.id)
 
-      if (updateError) { setErrorMessage(updateError.message); setStatus("error"); return }
+      if (updateError) { 
+        console.error("[Confirm] Update error:", updateError)
+        setErrorMessage(updateError.message); 
+        setStatus("error"); 
+        return 
+      }
+      console.log("[Confirm] Success!")
       setStatus("success")
     })
   }, [])
