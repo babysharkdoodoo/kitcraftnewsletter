@@ -3,115 +3,387 @@
 import { createClient } from "@/lib/supabase/client"
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { ArrowLeft, Mail, Radio } from "lucide-react"
 
 type Status = "loading" | "invalid" | "already" | "error" | "success"
 
-const statusConfig = {
-  loading: { icon: null, title: null, message: null, accent: null },
-  success: {
-    accent: "emerald",
-    label: "Confirmed",
-    title: "You're in the loop.",
-    message: "Your subscription is live. Expect something worth reading — written by the students who built it.",
-    icon: (
-      <svg viewBox="0 0 56 56" fill="none" className="w-12 h-12">
-        <circle cx="28" cy="28" r="27" stroke="currentColor" strokeWidth="1" opacity="0.2" />
-        <circle cx="28" cy="28" r="27" stroke="currentColor" strokeWidth="1.5"
-          strokeDasharray="170" strokeDashoffset="170"
-          style={{ animation: "draw 0.8s 0.2s ease-out forwards" }} />
-        <path d="M17 28l8 8 14-16" stroke="currentColor" strokeWidth="2"
-          strokeLinecap="round" strokeLinejoin="round"
-          strokeDasharray="40" strokeDashoffset="40"
-          style={{ animation: "draw 0.4s 0.9s ease-out forwards" }} />
-      </svg>
-    ),
-  },
-  already: {
-    accent: "sky",
-    label: "Already active",
-    title: "Already confirmed.",
-    message: "Your email is verified and you're already subscribed. Nothing left to do here.",
-    icon: (
-      <svg viewBox="0 0 56 56" fill="none" className="w-12 h-12">
-        <circle cx="28" cy="28" r="27" stroke="currentColor" strokeWidth="1" opacity="0.2" />
-        <circle cx="28" cy="28" r="27" stroke="currentColor" strokeWidth="1.5"
-          strokeDasharray="170" strokeDashoffset="170"
-          style={{ animation: "draw 0.8s 0.2s ease-out forwards" }} />
-        <path d="M28 20v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-          strokeDasharray="20" strokeDashoffset="20"
-          style={{ animation: "draw 0.3s 0.9s ease-out forwards" }} />
-        <circle cx="28" cy="36" r="1.5" fill="currentColor"
-          style={{ opacity: 0, animation: "appear 0.1s 1.15s forwards" }} />
-      </svg>
-    ),
-  },
-  invalid: {
-    accent: "amber",
-    label: "Link invalid",
-    title: "Link not valid.",
-    message: "This confirmation link is invalid or has expired. Try subscribing again from the newsletter page.",
-    icon: (
-      <svg viewBox="0 0 56 56" fill="none" className="w-12 h-12">
-        <circle cx="28" cy="28" r="27" stroke="currentColor" strokeWidth="1" opacity="0.2" />
-        <circle cx="28" cy="28" r="27" stroke="currentColor" strokeWidth="1.5"
-          strokeDasharray="170" strokeDashoffset="170"
-          style={{ animation: "draw 0.8s 0.2s ease-out forwards" }} />
-        <path d="M22 22l12 12M34 22l-12 12" stroke="currentColor" strokeWidth="2"
-          strokeLinecap="round"
-          strokeDasharray="40" strokeDashoffset="40"
-          style={{ animation: "draw 0.4s 0.9s ease-out forwards" }} />
-      </svg>
-    ),
-  },
-  error: {
-    accent: "rose",
-    label: "Error",
-    title: "Something went wrong.",
-    message: "We hit a snag on our end. Please try again in a moment.",
-    icon: (
-      <svg viewBox="0 0 56 56" fill="none" className="w-12 h-12">
-        <circle cx="28" cy="28" r="27" stroke="currentColor" strokeWidth="1" opacity="0.2" />
-        <circle cx="28" cy="28" r="27" stroke="currentColor" strokeWidth="1.5"
-          strokeDasharray="170" strokeDashoffset="170"
-          style={{ animation: "draw 0.8s 0.2s ease-out forwards" }} />
-        <path d="M22 22l12 12M34 22l-12 12" stroke="currentColor" strokeWidth="2"
-          strokeLinecap="round"
-          strokeDasharray="40" strokeDashoffset="40"
-          style={{ animation: "draw 0.4s 0.9s ease-out forwards" }} />
-      </svg>
-    ),
-  },
+/* ═══════════════════════════════════════════════════════════════════════
+   STATUS CONFIG
+═══════════════════════════════════════════════════════════════════════ */
+const STATUS_META = {
+  loading:  { label: null,              ghost: null,         accent: null,      headline: null,                    sub: null },
+  success:  { label: "Subscription confirmed", ghost: "CONFIRMED", accent: "#d97706", headline: "You're in the loop.",       sub: "Your subscription is live. Expect something worth reading — written by the students who built it." },
+  already:  { label: "Already active",  ghost: "ACTIVE",     accent: "#0369a1", headline: "Already confirmed.",    sub: "Your email is verified and your subscription is live. Nothing left to do here." },
+  invalid:  { label: "Link invalid",    ghost: "INVALID",    accent: "#92400e", headline: "Link not valid.",       sub: "This confirmation link is invalid or has expired. Try subscribing again from the newsletter page." },
+  error:    { label: "Server error",    ghost: "ERROR",      accent: "#be185d", headline: "Something went wrong.", sub: "We hit a snag on our end. Please wait a moment and try again." },
 } as const
 
-const ACCENT_BLOB: Record<string, string> = {
-  emerald: "rgba(52,211,153,0.09)",
-  sky:     "rgba(56,189,248,0.09)",
-  amber:   "rgba(217,119,6,0.09)",
-  rose:    "rgba(251,113,133,0.09)",
-}
-const ACCENT_HEX: Record<string, string> = {
-  emerald: "#34d399",
-  sky:     "#38bdf8",
-  amber:   "#d97706",
-  rose:    "#fb7185",
+/* ═══════════════════════════════════════════════════════════════════════
+   GRAIN OVERLAY
+═══════════════════════════════════════════════════════════════════════ */
+function Grain() {
+  return (
+    <div className="grain-overlay" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">
+        <filter id="noise-c">
+          <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+          <feColorMatrix type="saturate" values="0"/>
+        </filter>
+        <rect width="300" height="300" filter="url(#noise-c)" opacity="1"/>
+      </svg>
+    </div>
+  )
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   TICKER — identical to homepage
+═══════════════════════════════════════════════════════════════════════ */
+const TICKER_ITEMS = [
+  "Kit #847 delivered · Arnold Palmer Hospital",
+  "9 student builders · West Shore Jr/Sr High",
+  "400+ build hours this school year",
+  "2 partner organizations in Brevard County",
+  "Zero ads. Zero sponsors. Ever.",
+  "~2 emails per month, written by students",
+  "200+ kits planned for Brevard County",
+  "Every kit is free to the recipient",
+]
+function Ticker() {
+  const items = [...TICKER_ITEMS, ...TICKER_ITEMS]
+  return (
+    <div className="overflow-hidden py-3.5 border-b border-white/[0.07] bg-white/[0.018]">
+      <div className="flex gap-0 whitespace-nowrap" style={{ animation: "tickerScroll 38s linear infinite" }}>
+        {items.map((item, i) => (
+          <span key={i} className="flex items-center gap-3 shrink-0 font-mono text-[10px] tracking-[0.14em] px-6 text-stone-600">
+            <span className="text-amber-500/50">◆</span>{item}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   STATUS ICON — drawn in svg with animated strokes
+═══════════════════════════════════════════════════════════════════════ */
+function StatusIcon({ status, accent }: { status: Status; accent: string }) {
+  if (status === "success") return (
+    <svg viewBox="0 0 64 64" fill="none" style={{ width:64, height:64, color:accent }}>
+      <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="0.75" opacity="0.2"/>
+      <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="1.5"
+        strokeDasharray="188" strokeDashoffset="188"
+        style={{ animation:"svgDraw 0.9s 0.2s ease-out forwards" }}/>
+      <path d="M20 32l9 9 15-18" stroke="currentColor" strokeWidth="2.5"
+        strokeLinecap="round" strokeLinejoin="round"
+        strokeDasharray="44" strokeDashoffset="44"
+        style={{ animation:"svgDraw 0.5s 1.0s ease-out forwards" }}/>
+    </svg>
+  )
+  if (status === "already") return (
+    <svg viewBox="0 0 64 64" fill="none" style={{ width:64, height:64, color:accent }}>
+      <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="0.75" opacity="0.2"/>
+      <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="1.5"
+        strokeDasharray="188" strokeDashoffset="188"
+        style={{ animation:"svgDraw 0.9s 0.2s ease-out forwards" }}/>
+      <path d="M32 20v12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+        strokeDasharray="24" strokeDashoffset="24"
+        style={{ animation:"svgDraw 0.35s 1.0s ease-out forwards" }}/>
+      <circle cx="32" cy="41" r="2" fill="currentColor"
+        style={{ opacity:0, animation:"svgAppear 0.1s 1.3s ease-out forwards" }}/>
+    </svg>
+  )
+  return (
+    <svg viewBox="0 0 64 64" fill="none" style={{ width:64, height:64, color:accent }}>
+      <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="0.75" opacity="0.2"/>
+      <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="1.5"
+        strokeDasharray="188" strokeDashoffset="188"
+        style={{ animation:"svgDraw 0.9s 0.2s ease-out forwards" }}/>
+      <path d="M22 22l20 20M42 22l-20 20" stroke="currentColor" strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeDasharray="56" strokeDashoffset="56"
+        style={{ animation:"svgDraw 0.5s 1.0s ease-out forwards" }}/>
+    </svg>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+═══════════════════════════════════════════════════════════════════════ */
 export default function ConfirmPage() {
   return (
-    <Suspense fallback={
-      <div className="font-mono min-h-screen flex items-center justify-center" style={{ backgroundColor: "#111118" }}>
-        <div className="py-20 flex flex-col items-center gap-4">
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" style={{ color: "rgba(255,255,255,0.20)", animation: "spinSlow 3s linear infinite" }}>
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" strokeDasharray="40" strokeDashoffset="15" />
-          </svg>
-          <span className="font-mono text-[9px] uppercase tracking-[0.32em]" style={{ color: "rgba(255,255,255,0.20)" }}>
-            Loading
-          </span>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<ConfirmShell status="loading" />}>
       <ConfirmPageContent />
     </Suspense>
+  )
+}
+
+function ConfirmShell({ status, errorMessage }: { status: Status; errorMessage?: string }) {
+  const meta = STATUS_META[status]
+  const now = new Date()
+  const dateStr = now.toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" })
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { const t = setTimeout(() => setMounted(true), 60); return () => clearTimeout(t) }, [])
+
+  const r = (d = 0): React.CSSProperties => ({
+    opacity: mounted ? 1 : 0,
+    transform: mounted ? "none" : "translateY(20px)",
+    transition: `opacity .75s cubic-bezier(.22,1,.36,1) ${d}ms, transform .75s cubic-bezier(.22,1,.36,1) ${d}ms`,
+  })
+
+  const accentColor = meta.accent ?? "#d97706"
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        .font-display { font-family: 'Playfair Display', Georgia, 'Times New Roman', serif; font-feature-settings: "kern" 1, "liga" 1; }
+        .font-mono    { font-family: 'DM Mono', 'Fira Code', 'Courier New', monospace; }
+
+        .grain-overlay {
+          position: absolute; inset: 0;
+          pointer-events: none; z-index: 2;
+          opacity: 0.032;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='512' height='512' filter='url(%23n)'/%3E%3C/svg%3E");
+          background-size: 200px 200px;
+        }
+
+        .hero-lines {
+          background-image: repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(255,255,255,0.013) 28px);
+        }
+
+        @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes svgDraw      { to   { stroke-dashoffset: 0; } }
+        @keyframes svgAppear    { to   { opacity: 1; } }
+        @keyframes spinSlow     { to   { transform: rotate(360deg); } }
+        @keyframes pulseRing    {
+          0%,100% { transform: scale(0.92); opacity: 0.45; }
+          50%      { transform: scale(1.08); opacity: 0.20; }
+        }
+
+        .spin { animation: spinSlow 3s linear infinite; }
+
+        .btn-primary {
+          display: inline-flex; align-items: center; gap: 8px;
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+          color: #fff;
+          font-family: 'DM Mono', monospace;
+          font-size: 12.5px; font-weight: 500; letter-spacing: 0.02em;
+          padding: 14px 28px; border-radius: 100px;
+          border: none; cursor: pointer; text-decoration: none;
+          box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 4px 24px rgba(217,119,6,0.40), 0 1px 4px rgba(0,0,0,0.2);
+          transition: all .22s ease; position: relative; overflow: hidden;
+        }
+        .btn-primary::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom, rgba(255,255,255,0.12), transparent); border-radius:inherit; }
+        .btn-primary:hover { background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 50%,#d97706 100%); box-shadow:0 1px 0 rgba(255,255,255,0.2) inset,0 6px 32px rgba(217,119,6,0.50),0 2px 8px rgba(0,0,0,0.25); transform:translateY(-2px); }
+        .btn-primary:active { transform:scale(0.975); }
+
+        .btn-ghost {
+          display: inline-flex; align-items: center; gap: 8px;
+          background-color: rgba(255,255,255,0.05);
+          color: rgba(255,255,255,0.45);
+          font-family: 'DM Mono', monospace;
+          font-size: 12.5px; font-weight: 500; letter-spacing: 0.02em;
+          padding: 13px 24px; border-radius: 100px;
+          border: 1.5px solid rgba(255,255,255,0.10);
+          cursor: pointer; text-decoration: none;
+          transition: all .22s ease; backdrop-filter: blur(4px);
+        }
+        .btn-ghost:hover { border-color:rgba(255,255,255,0.20); color:rgba(255,255,255,0.75); background-color:rgba(255,255,255,0.08); transform:translateY(-1px); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111110; }
+        ::-webkit-scrollbar-thumb { background: rgba(217,119,6,0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(217,119,6,0.5); }
+      `}</style>
+
+      <main style={{ backgroundColor:"#111110", minHeight:"100vh", display:"flex", flexDirection:"column" }}>
+        <div className="relative overflow-hidden flex flex-col flex-1">
+          <Grain />
+          {/* Paper lines */}
+          <div className="absolute inset-0 pointer-events-none hero-lines" style={{ zIndex:1 }} aria-hidden="true"/>
+
+          {/* Accent spotlight — tracks status color */}
+          {meta.accent && (
+            <div className="absolute pointer-events-none" aria-hidden="true"
+              style={{ top:"20%", left:"50%", transform:"translateX(-50%)", width:"70%", height:"55%",
+                background:`radial-gradient(ellipse at 50% 50%, ${meta.accent}0d 0%, transparent 65%)`,
+                zIndex:1, filter:"blur(50px)", transition:"background 0.8s ease" }}/>
+          )}
+
+          {/* ── Publication masthead — identical to homepage ── */}
+          <div className="relative z-10" style={{ opacity: mounted ? 1 : 0, transition:"opacity .5s ease 0ms" }}>
+
+            {/* Top rule */}
+            <div className="border-b border-white/[0.09] px-8 lg:px-16 py-2.5 flex items-center justify-between">
+              <span className="font-mono text-[9px] text-white/25 tracking-[0.22em] uppercase">{dateStr}</span>
+              <div className="hidden sm:flex items-center gap-3">
+                <span className="font-mono text-[9px] text-amber-500/40 tracking-[0.22em] uppercase">Vol. I</span>
+                <span className="text-white/10">·</span>
+                <span className="font-mono text-[9px] text-white/25 tracking-[0.22em] uppercase">Issue No. 14</span>
+              </div>
+            </div>
+
+            {/* Masthead */}
+            <div className="border-b-2 border-white/[0.09] px-8 lg:px-16 py-7 text-center relative">
+              <div className="absolute left-0 top-0 bottom-0 w-[3px]"
+                style={{ background:"linear-gradient(to bottom, transparent, rgba(217,119,6,0.6), transparent)" }}/>
+              <div className="absolute left-8 lg:left-16 top-1/2 -translate-y-1/2 hidden lg:flex flex-col items-start gap-1.5">
+                <span className="font-mono text-[8px] text-white/20 tracking-[0.26em] uppercase">Melbourne · FL</span>
+                <span className="font-mono text-[8px] text-white/20 tracking-[0.26em] uppercase">Est. 2024</span>
+              </div>
+              <Link href="/" className="inline-block">
+                <h1 className="font-display font-black text-white tracking-[-0.03em] leading-none hover:opacity-80 transition-opacity"
+                  style={{ fontSize:"clamp(2.2rem,6vw,4.2rem)", textShadow:"0 0 120px rgba(217,119,6,0.25), 0 0 40px rgba(217,119,6,0.1)" }}>
+                  KitCraft
+                  <span className="text-amber-400 mx-3 opacity-70">·</span>
+                  The Newsletter
+                </h1>
+              </Link>
+              <div className="absolute right-8 lg:right-16 top-1/2 -translate-y-1/2 hidden lg:flex flex-col items-end gap-1.5">
+                <span className="font-mono text-[8px] text-white/20 tracking-[0.26em] uppercase">Student-made</span>
+                <span className="font-mono text-[8px] text-white/20 tracking-[0.26em] uppercase">Free always</span>
+              </div>
+            </div>
+
+            {/* Column headers */}
+            <div className="border-b border-white/[0.07] px-8 lg:px-16 py-2 hidden lg:flex items-center gap-0">
+              {["Impact Stories","Kit Releases","Delivery Updates","Behind the Scenes","Volunteer Calls","Fundraising"].map((col, i) => (
+                <span key={i} className={`flex-1 font-mono text-[8px] text-center tracking-[0.2em] uppercase ${i > 0 ? "border-l border-white/[0.07]" : ""}`}
+                  style={{ color:"rgba(255,255,255,0.22)" }}>
+                  {col}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Ticker */}
+          <div className="relative z-10">
+            <Ticker />
+          </div>
+
+          {/* ── Body ── */}
+          <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 py-20 lg:py-28">
+
+            {/* Ghost watermark word */}
+            {meta.ghost && (
+              <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none select-none" aria-hidden="true">
+                <div className="font-display font-black text-white/[0.022] leading-none tracking-[-0.05em]"
+                  style={{ fontSize:"clamp(8rem,22vw,18rem)", opacity: mounted ? 1 : 0, transition:"opacity 1.2s ease 0.4s" }}>
+                  {meta.ghost}
+                </div>
+              </div>
+            )}
+
+            {/* Loading spinner */}
+            {status === "loading" && (
+              <div className="flex flex-col items-center gap-5">
+                <svg className="spin" viewBox="0 0 28 28" fill="none" style={{ width:28, height:28, color:"rgba(255,255,255,0.22)" }}>
+                  <circle cx="14" cy="14" r="12" stroke="currentColor" strokeWidth="1.5" strokeDasharray="48" strokeDashoffset="18"/>
+                </svg>
+                <span className="font-mono text-[9px] uppercase tracking-[0.32em] text-white/22">Verifying</span>
+              </div>
+            )}
+
+            {/* Status content */}
+            {status !== "loading" && meta.label && (
+              <div className="w-full max-w-lg mx-auto text-center flex flex-col items-center">
+
+                {/* Section label — mirrors homepage SectionLabel */}
+                <div className="flex items-center gap-3 mb-12" style={r(0)}>
+                  <div className="h-px w-12" style={{ background:`linear-gradient(to right, transparent, ${accentColor}55)` }}/>
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: accentColor }}/>
+                  <span className="font-mono text-[9px] font-bold uppercase tracking-[0.38em] whitespace-nowrap"
+                    style={{ color:`${accentColor}99` }}>
+                    {meta.label}
+                  </span>
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: accentColor }}/>
+                  <div className="h-px w-12" style={{ background:`linear-gradient(to left, transparent, ${accentColor}55)` }}/>
+                </div>
+
+                {/* Icon with pulse ring */}
+                <div className="relative flex items-center justify-center mb-10" style={r(60)}>
+                  {/* Outer pulse ring */}
+                  <div className="absolute w-32 h-32 rounded-full"
+                    style={{ backgroundColor:`${accentColor}0a`, animation:"pulseRing 3.5s ease-in-out infinite",
+                      border:`1px solid ${accentColor}18` }}/>
+                  {/* Inner ring */}
+                  <div className="absolute w-20 h-20 rounded-full"
+                    style={{ backgroundColor:`${accentColor}08`, border:`1px solid ${accentColor}22` }}/>
+                  <StatusIcon status={status} accent={accentColor}/>
+                </div>
+
+                {/* Headline — matches homepage h2 scale */}
+                <h2 className="font-display font-black text-white leading-[0.95] tracking-[-0.03em] mb-5"
+                  style={{ fontSize:"clamp(2.4rem,6vw,4rem)", ...r(120) }}>
+                  {meta.headline}
+                </h2>
+
+                {/* Ruled break */}
+                <div className="flex items-center gap-4 mb-6 w-full max-w-xs" style={r(180)}>
+                  <div className="h-px flex-1" style={{ background:`linear-gradient(to right, ${accentColor}50, ${accentColor}18, transparent)` }}/>
+                  <div className="w-1 h-1 rounded-full" style={{ backgroundColor:`${accentColor}50` }}/>
+                  <div className="h-px flex-1" style={{ background:`linear-gradient(to left, ${accentColor}50, ${accentColor}18, transparent)` }}/>
+                </div>
+
+                {/* Message */}
+                <p className="font-mono text-[14px] leading-[1.9] text-stone-500 mb-3 max-w-sm" style={r(220)}>
+                  {meta.sub}
+                </p>
+
+                {/* Error detail */}
+                {status === "error" && errorMessage && (
+                  <div className="text-left rounded-xl border border-white/[0.06] bg-white/[0.025] px-5 py-4 mb-8 mt-3 w-full" style={r(260)}>
+                    <p className="font-mono text-[11px] leading-relaxed break-all text-white/22">{errorMessage}</p>
+                  </div>
+                )}
+
+                {/* Location byline — matches homepage footer style */}
+                <div className="flex items-center gap-2 mt-3 mb-10" style={r(260)}>
+                  <Radio className="h-2.5 w-2.5 text-amber-400/60 animate-pulse" style={{ width:10, height:10 }}/>
+                  <span className="font-mono text-[9px] text-white/20 uppercase tracking-[0.22em]">Melbourne, FL · West Shore Jr/Sr High</span>
+                </div>
+
+                {/* CTA buttons */}
+                <div className="flex flex-col sm:flex-row items-center gap-3 mt-2" style={r(320)}>
+                  {(status === "success" || status === "already") ? (
+                    <>
+                      <Link href="/" className="btn-primary" style={{ background:`linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 100%)` }}>
+                        <Mail style={{ width:14, height:14 }}/> Back to newsletter
+                      </Link>
+                      <Link href="/#what-you-get" className="btn-ghost">
+                        <ArrowLeft style={{ width:14, height:14 }}/> Explore topics
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/#signup" className="btn-primary">
+                        <Mail style={{ width:14, height:14 }}/> Subscribe again
+                      </Link>
+                      <Link href="/" className="btn-ghost">
+                        <ArrowLeft style={{ width:14, height:14 }}/> Back to home
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Footer rule ── */}
+          <div className="relative z-10 border-t border-white/[0.07] px-8 lg:px-16 py-4 flex items-center justify-between"
+            style={{ opacity: mounted ? 1 : 0, transition:"opacity .8s ease 0.8s" }}>
+            <span className="font-mono text-[8.5px] text-white/18 uppercase tracking-[0.22em]">KitCraft Newsletter · Melbourne, FL · Est. 2024</span>
+            <div className="hidden sm:flex items-center gap-3">
+              <span className="font-mono text-[8.5px] text-white/18 uppercase tracking-[0.22em]">Student-built · Zero ads · Free always</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </>
   )
 }
 
@@ -119,227 +391,33 @@ function ConfirmPageContent() {
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<Status>("loading")
   const [errorMessage, setErrorMessage] = useState("")
-  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
     const token = searchParams.get("token")
-    console.log("[Confirm] Token from URL:", token)
-    console.log("[Confirm] Full search params:", searchParams.toString())
-    
-    if (!token) { 
-      console.error("[Confirm] No token found in URL")
-      setStatus("invalid")
-      return 
-    }
+    if (!token) { setStatus("invalid"); return }
 
     const confirmSubscription = async () => {
-      console.log("[Confirm] Starting confirmation for token:", token)
       const supabase = createClient()
-      
-      console.log("[Confirm] Querying database...")
       const { data: subscriber, error } = await supabase
         .from("newsletter_subscribers")
         .select("id, status, email, token")
         .eq("token", token)
         .single()
 
-      console.log("[Confirm] Database response:", { subscriber, error })
-      console.log("[Confirm] Error details:", error ? JSON.stringify(error, null, 2) : "none")
-      
-      if (error || !subscriber) { 
-        console.error("[Confirm] Error or no subscriber found:", error)
-        setStatus("invalid")
-        return 
-      }
-      
-      console.log("[Confirm] Subscriber found:", subscriber)
-      
-      if (subscriber.status === "active") { 
-        console.log("[Confirm] Subscriber already active")
-        setStatus("already")
-        return 
-      }
+      if (error || !subscriber) { setStatus("invalid"); return }
+      if (subscriber.status === "active") { setStatus("already"); return }
 
-      console.log("[Confirm] Updating subscriber to active...")
       const { error: updateError } = await supabase
         .from("newsletter_subscribers")
         .update({ status: "active", unsubscribed_at: null })
         .eq("id", subscriber.id)
 
-      if (updateError) { 
-        console.error("[Confirm] Update error:", updateError)
-        console.error("[Confirm] Update error details:", JSON.stringify(updateError, null, 2))
-        setErrorMessage(updateError.message)
-        setStatus("error")
-        return 
-      }
-      console.log("[Confirm] Success! Subscriber activated")
+      if (updateError) { setErrorMessage(updateError.message); setStatus("error"); return }
       setStatus("success")
     }
 
     confirmSubscription()
   }, [searchParams])
 
-  useEffect(() => {
-    if (status !== "loading") {
-      const t = setTimeout(() => setVisible(true), 50)
-      return () => clearTimeout(t)
-    }
-  }, [status])
-
-  const config = status !== "loading" ? statusConfig[status] : null
-  const accent = config && "accent" in config ? (config.accent as string) : null
-
-  return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700&family=DM+Mono:wght@400;500&display=swap');
-
-        .font-display { font-family: 'Playfair Display', Georgia, serif; }
-        .font-mono    { font-family: 'DM Mono', 'Fira Code', monospace; }
-
-        @keyframes draw   { to { stroke-dashoffset: 0; } }
-        @keyframes appear { to { opacity: 1; } }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(14px); }
-          to   { opacity: 1; transform: none; }
-        }
-        @keyframes spinSlow { to { transform: rotate(360deg); } }
-        @keyframes blobA { from{transform:translate(0,0) scale(1)} to{transform:translate(-30px,20px) scale(1.10)} }
-        @keyframes blobB { from{transform:translate(0,0) scale(1)} to{transform:translate(25px,-18px) scale(1.07)} }
-        @keyframes blobC { from{transform:translate(0,0) scale(1)} to{transform:translate(-18px,-22px) scale(1.12)} }
-        @keyframes pulseRing {
-          0%,100% { transform: scale(0.94); opacity: 0.55; }
-          50%     { transform: scale(1.06); opacity: 0.25; }
-        }
-
-        .anim-spin { animation: spinSlow 3s linear infinite; }
-        .anim-up-1 { animation: fadeUp .55s .05s ease-out both; }
-        .anim-up-2 { animation: fadeUp .55s .18s ease-out both; }
-        .anim-up-3 { animation: fadeUp .55s .30s ease-out both; }
-        .anim-up-4 { animation: fadeUp .55s .44s ease-out both; }
-
-        .back-link { color: rgba(255,255,255,0.28); transition: color .2s ease; }
-        .back-link:hover { color: rgba(255,255,255,0.60); }
-      `}</style>
-
-      <div className="font-mono min-h-screen flex items-center justify-center relative overflow-hidden"
-        style={{ backgroundColor: "#111118" }}>
-
-        {/* ── Blob glows — identical to the newsletter dark sections ── */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -bottom-32 -left-24 h-[560px] w-[560px] rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(109,40,217,0.55) 0%, transparent 65%)", filter: "blur(72px)", opacity: 0.15, animation: "blobA 18s ease-in-out infinite alternate" }} />
-          <div className="absolute -right-16 top-0 h-[440px] w-[440px] rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(2,132,199,0.55) 0%, transparent 65%)", filter: "blur(60px)", opacity: 0.11, animation: "blobB 14s ease-in-out infinite alternate" }} />
-          <div className="absolute left-1/2 top-1/2 h-[320px] w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(217,119,6,0.40) 0%, transparent 65%)", filter: "blur(50px)", opacity: 0.07, animation: "blobC 22s ease-in-out infinite alternate" }} />
-        </div>
-
-        {/* ── Grid overlay ── */}
-        <div className="pointer-events-none absolute inset-0 opacity-[0.018]"
-          style={{ backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,1) 1px,transparent 1px)", backgroundSize: "60px 60px" }} />
-
-        {/* ── Status accent glow ── */}
-        {accent && (
-          <div className="pointer-events-none absolute inset-0 transition-opacity duration-1000"
-            style={{ opacity: visible ? 1 : 0, background: `radial-gradient(ellipse 55% 45% at 50% 65%, ${ACCENT_BLOB[accent]} 0%, transparent 70%)` }} />
-        )}
-
-        {/* ── Corner rings ── */}
-        <div className="absolute bottom-0 right-0 w-72 h-72 pointer-events-none opacity-[0.022]">
-          <svg viewBox="0 0 256 256" fill="none">
-            <circle cx="256" cy="256" r="200" stroke="white" strokeWidth="0.5" />
-            <circle cx="256" cy="256" r="140" stroke="white" strokeWidth="0.5" />
-            <circle cx="256" cy="256" r="80"  stroke="white" strokeWidth="0.5" />
-          </svg>
-        </div>
-        <div className="absolute top-0 left-0 w-56 h-56 pointer-events-none opacity-[0.022]">
-          <svg viewBox="0 0 192 192" fill="none">
-            <circle cx="0" cy="0" r="160" stroke="white" strokeWidth="0.5" />
-            <circle cx="0" cy="0" r="100" stroke="white" strokeWidth="0.5" />
-          </svg>
-        </div>
-
-        {/* ── Main card ── */}
-        <div className="relative z-10 w-full max-w-xs mx-6 text-center transition-all duration-700"
-          style={{ opacity: (visible || status === "loading") ? 1 : 0, transform: (visible || status === "loading") ? "none" : "translateY(16px)" }}>
-
-          {/* ── Loading ── */}
-          {status === "loading" && (
-            <div className="py-20 flex flex-col items-center gap-4">
-              <svg className="w-5 h-5 anim-spin" viewBox="0 0 24 24" fill="none"
-                style={{ color: "rgba(255,255,255,0.20)" }}>
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" strokeDasharray="40" strokeDashoffset="15" />
-              </svg>
-              <span className="font-mono text-[9px] uppercase tracking-[0.32em]" style={{ color: "rgba(255,255,255,0.20)" }}>
-                Verifying
-              </span>
-            </div>
-          )}
-
-          {/* ── All other states ── */}
-          {status !== "loading" && config && "title" in config && (
-            <>
-              {/* Rule label — matches newsletter RuleLabel */}
-              <div className="flex items-center justify-center gap-3 mb-10 anim-up-1">
-                <div className="h-px w-8"
-                  style={{ backgroundColor: accent ? `${ACCENT_HEX[accent]}55` : "rgba(255,255,255,0.12)" }} />
-                <span className="font-mono text-[8.5px] font-bold uppercase tracking-[0.35em] whitespace-nowrap"
-                  style={{ color: accent ? `${ACCENT_HEX[accent]}80` : "rgba(255,255,255,0.28)" }}>
-                  {"label" in config ? config.label : ""}
-                </span>
-                <div className="h-px w-8"
-                  style={{ backgroundColor: accent ? `${ACCENT_HEX[accent]}55` : "rgba(255,255,255,0.12)" }} />
-              </div>
-
-              {/* Icon + pulse ring */}
-              <div className="relative inline-flex items-center justify-center mb-8 anim-up-1">
-                <div className="absolute w-24 h-24 rounded-full"
-                  style={{ backgroundColor: accent ? `${ACCENT_HEX[accent]}0d` : "rgba(255,255,255,0.03)", animation: "pulseRing 3s ease-in-out infinite" }} />
-                <div style={{ color: accent ? ACCENT_HEX[accent] : "rgba(255,255,255,0.55)" }}>
-                  {"icon" in config ? config.icon : null}
-                </div>
-              </div>
-
-              {/* Title — Playfair Display, matches newsletter h2s */}
-              <h1 className="font-display font-bold text-white mb-4 anim-up-2"
-                style={{ fontSize: "clamp(1.75rem,5vw,2.1rem)", lineHeight: 1.1, letterSpacing: "-0.015em" }}>
-                {"title" in config ? config.title : ""}
-              </h1>
-
-              {/* Message — DM Mono, muted */}
-              <p className="font-mono text-[13px] leading-[1.85] mb-8 anim-up-3"
-                style={{ color: "rgba(255,255,255,0.36)" }}>
-                {"message" in config ? config.message : ""}
-              </p>
-
-              {/* Error detail */}
-              {status === "error" && errorMessage && (
-                <div className="text-left rounded-lg border mb-6 px-4 py-3 anim-up-3"
-                  style={{ borderColor: "rgba(255,255,255,0.06)", backgroundColor: "rgba(255,255,255,0.025)" }}>
-                  <p className="font-mono text-[11px] leading-relaxed break-all"
-                    style={{ color: "rgba(255,255,255,0.22)" }}>
-                    {errorMessage}
-                  </p>
-                </div>
-              )}
-
-              {/* Divider */}
-              <div className="h-px mb-8 anim-up-3"
-                style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.07), transparent)" }} />
-
-              {/* Back link — same mono style as newsletter nav */}
-              <a href="/" className="back-link inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] anim-up-4">
-                <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none">
-                  <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Back to home
-              </a>
-            </>
-          )}
-        </div>
-      </div>
-    </>
-  )
+  return <ConfirmShell status={status} errorMessage={errorMessage}/>
 }
